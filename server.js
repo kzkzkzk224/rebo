@@ -1,0 +1,234 @@
+﻿const path = require("path");
+const fs = require("fs/promises");
+const express = require("express");
+const dotenv = require("dotenv");
+
+const { searchAladinBooks } = require("./services/aladin");
+const { searchNationalLibraryBooks } = require("./services/nl");
+const { mergeBookLists, createBookId, normalizeStatus } = require("./services/mergeBooks");
+
+dotenv.config();
+
+const app = express();
+const PORT = Number(process.env.PORT || 4173);
+
+const DATA_DIR = path.join(__dirname, "data");
+const BOOKSHELF_FILE = path.join(DATA_DIR, "bookshelf.json");
+
+let writeQueue = Promise.resolve();
+
+app.use(express.json({ limit: "1mb" }));
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/api/books/search", async (req, res) => {
+  const query = String(req.query.q || "").trim();
+  const limit = clampNumber(req.query.limit, 1, 40, 20);
+
+  if (!query) {
+    return res.status(400).json({
+      items: [],
+      meta: { query, count: 0, warnings: ["검색어(q)가 필요합니다."] },
+      error: "bad_request",
+      message: "검색어(q)가 필요합니다.",
+    });
+  }
+
+  const warnings = [];
+  const errors = [];
+
+  const aladinPromise = searchAladinBooks({
+    query,
+    limit,
+    apiKey: process.env.ALADIN_TTB_KEY || "",
+  });
+
+  const nlPromise = searchNationalLibraryBooks({
+    query,
+    limit,
+    apiKey: process.env.NL_API_KEY || "",
+  });
+
+  const [aladinResult, nlResult] = await Promise.allSettled([aladinPromise, nlPromise]);
+
+  let aladinItems = [];
+  let nlItems = [];
+
+  if (aladinResult.status === "fulfilled") {
+    aladinItems = aladinResult.value.items;
+    warnings.push(...(aladinResult.value.warnings || []));
+  } else {
+    errors.push(`[알라딘] ${String(aladinResult.reason?.message || aladinResult.reason || "unknown error")}`);
+  }
+
+  if (nlResult.status === "fulfilled") {
+    nlItems = nlResult.value.items;
+    warnings.push(...(nlResult.value.warnings || []));
+  } else {
+    errors.push(`[국립중앙도서관] ${String(nlResult.reason?.message || nlResult.reason || "unknown error")}`);
+  }
+
+  if (aladinItems.length === 0 && nlItems.length === 0 && errors.length > 0) {
+    return res.status(502).json({
+      items: [],
+      meta: { query, count: 0, warnings: [...warnings, ...errors] },
+      error: "external_api_failed",
+      message: `외부 API 실패: ${errors.join(" | ")}`,
+    });
+  }
+
+  const merged = mergeBookLists(aladinItems, nlItems)
+    .slice(0, limit)
+    .map((book) => ({
+      id: createBookId(book),
+      title: book.title || "",
+      author: book.author || "",
+      publisher: book.publisher || "",
+      pubYear: book.pubYear || "",
+      isbn13: book.isbn13 || "",
+      isbn: book.isbn || "",
+      cover: book.cover || "/placeholder-cover.svg",
+      status: normalizeStatus(book.status),
+      memo: String(book.memo || ""),
+      source: {
+        aladin: Boolean(book.source?.aladin),
+        nl: Boolean(book.source?.nl),
+      },
+    }));
+
+  return res.json({
+    items: merged,
+    meta: {
+      query,
+      count: merged.length,
+      warnings: [...warnings, ...errors],
+    },
+  });
+});
+
+app.get("/api/bookshelf", async (_req, res) => {
+  const data = await readBookshelf();
+  res.json(data);
+});
+
+app.post("/api/bookshelf", async (req, res) => {
+  const incoming = req.body || {};
+  const item = normalizeBookshelfItem(incoming);
+
+  if (!item.title) {
+    return res.status(400).json({ error: "bad_request", message: "title은 필수입니다." });
+  }
+
+  const data = await readBookshelf();
+  const index = data.items.findIndex((book) => book.id === item.id);
+
+  if (index >= 0) {
+    data.items[index] = { ...data.items[index], ...item };
+  } else {
+    data.items.unshift(item);
+  }
+
+  await writeBookshelf(data);
+  res.status(201).json({ item });
+});
+
+app.patch("/api/bookshelf/:id", async (req, res) => {
+  const id = String(req.params.id || "").trim();
+  if (!id) return res.status(400).json({ error: "bad_request", message: "id가 필요합니다." });
+
+  const updates = req.body || {};
+  const data = await readBookshelf();
+  const index = data.items.findIndex((book) => book.id === id);
+
+  if (index < 0) return res.status(404).json({ error: "not_found", message: "책을 찾을 수 없습니다." });
+
+  const current = data.items[index];
+  const next = {
+    ...current,
+    status: updates.status ? normalizeStatus(updates.status) : current.status,
+    memo: typeof updates.memo === "string" ? updates.memo.slice(0, 200) : current.memo,
+  };
+
+  data.items[index] = next;
+  await writeBookshelf(data);
+  res.json({ item: next });
+});
+
+app.delete("/api/bookshelf/:id", async (req, res) => {
+  const id = String(req.params.id || "").trim();
+  const data = await readBookshelf();
+  const before = data.items.length;
+
+  data.items = data.items.filter((book) => book.id !== id);
+
+  if (data.items.length === before) {
+    return res.status(404).json({ error: "not_found", message: "삭제할 책이 없습니다." });
+  }
+
+  await writeBookshelf(data);
+  res.json({ ok: true });
+});
+
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(PORT, () => {
+  const missing = [];
+  if (!process.env.ALADIN_TTB_KEY) missing.push("ALADIN_TTB_KEY");
+  if (!process.env.NL_API_KEY) missing.push("NL_API_KEY (optional)");
+
+  console.log(`rebo server running on http://localhost:${PORT}`);
+  if (missing.length > 0) console.log(`[env] missing: ${missing.join(", ")}`);
+});
+
+function clampNumber(raw, min, max, fallback) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+async function readBookshelf() {
+  try {
+    const raw = await fs.readFile(BOOKSHELF_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed.items) ? parsed.items.map(normalizeBookshelfItem) : [];
+    return { items };
+  } catch {
+    return { items: [] };
+  }
+}
+
+function writeBookshelf(data) {
+  writeQueue = writeQueue.then(async () => {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(BOOKSHELF_FILE, JSON.stringify({ items: data.items }, null, 2), "utf8");
+  });
+
+  return writeQueue;
+}
+
+function normalizeBookshelfItem(input) {
+  const book = input || {};
+  const normalized = {
+    id: String(book.id || createBookId(book)).trim(),
+    title: String(book.title || "").trim(),
+    author: String(book.author || "").trim(),
+    publisher: String(book.publisher || "").trim(),
+    pubYear: String(book.pubYear || "").trim(),
+    isbn13: String(book.isbn13 || "").trim(),
+    isbn: String(book.isbn || "").trim(),
+    cover: String(book.cover || "/placeholder-cover.svg").trim() || "/placeholder-cover.svg",
+    status: normalizeStatus(book.status),
+    memo: String(book.memo || "").slice(0, 200),
+    source: {
+      aladin: Boolean(book.source?.aladin),
+      nl: Boolean(book.source?.nl),
+    },
+  };
+
+  if (!normalized.id) {
+    normalized.id = createBookId(normalized);
+  }
+
+  return normalized;
+}

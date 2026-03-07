@@ -1,0 +1,60 @@
+﻿<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rebo</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <p class="brand">rebo</p>
+          <p class="tag">rebo.com</p>
+        </div>
+        <nav class="tabs">
+          <button class="tab active" data-view="home">홈</button>
+          <button class="tab" data-view="search">검색</button>
+          <button class="tab" data-view="shelf">내 서재</button>
+        </nav>
+      </header>
+
+      <main id="view" class="view"></main>
+    </div>
+
+    <template id="home-template">
+      <section class="panel hero">
+        <h1>차분하게 기록하는 독서 서비스</h1>
+        <p>책 검색부터 내 서재 저장, 읽기 상태 관리, 한 줄 메모까지 한 번에 관리하세요.</p>
+        <button class="primary" id="home-start-search">책 검색 시작</button>
+      </section>
+    </template>
+
+    <template id="search-template">
+      <section class="panel">
+        <h2>책 검색</h2>
+        <p class="muted">알라딘 OpenAPI 기반 검색</p>
+        <div class="search-box">
+          <input id="search-input" type="text" placeholder="책 제목 또는 저자명을 입력하세요" />
+          <button class="primary" id="search-btn">검색</button>
+        </div>
+        <div id="search-state" class="state"></div>
+        <div id="search-results" class="book-grid"></div>
+      </section>
+    </template>
+
+    <template id="shelf-template">
+      <section class="panel">
+        <h2>내 서재</h2>
+        <p class="muted">읽기 상태와 한 줄 메모를 관리하세요.</p>
+        <div id="shelf-state" class="state"></div>
+        <div id="shelf-list" class="book-list"></div>
+      </section>
+    </template>
+
+    <script src="/app.js?v=20260306-2"></script>
+  </body>
+</html>
+
+

@@ -1,0 +1,14 @@
+﻿{
+  "name": "rebo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "rebo MVP - reading tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "dotenv": "^16.4.5"
+  }
+}
