@@ -3,6 +3,8 @@
   reading: "읽는 중",
   done: "읽음",
 };
+const LOCAL_SHELF_KEY = "rebo-bookshelf-v1";
+let volatileShelfFallback = [];
 
 const VIEW_META = {
   shelf: { title: "책장", subtitle: "추가한 책을 책장처럼 정리해두세요." },
@@ -48,6 +50,7 @@ applyTheme(state.my.theme);
 clearLegacyCacheControls();
 bindNav();
 setView("shelf");
+console.log("[rebo shelf] storage mode", getStorageMode());
 
 function bindNav() {
   document.querySelectorAll(".nav-item").forEach((btn) => {
@@ -78,6 +81,7 @@ function syncNav(view) {
 
 async function renderShelf() {
   await loadShelf();
+  console.log("[rebo shelf] render data", state.shelf.items);
 
   $view.innerHTML = `
     <section class="panel">
@@ -290,7 +294,8 @@ function drawSearchResults() {
 
 async function addBookToShelf(book) {
   if (!book) return;
-  console.log("[rebo shelf] add button clicked", book.title);
+  console.log("[rebo shelf] add button clicked", { id: book.id, title: book.title });
+  console.log("[rebo shelf] addBookToShelf entered");
 
   const payload = {
     id: book.id,
@@ -307,35 +312,21 @@ async function addBookToShelf(book) {
   };
 
   try {
-    console.log("[rebo shelf] POST /api/bookshelf", payload);
-    const response = await fetch("/api/bookshelf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    console.log("[rebo shelf] response status", response.status);
+    const current = readShelfStorage();
+    const duplicate = findDuplicateBook(current, payload);
 
-    const text = await response.text();
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = null;
-    }
-
-    if (!response.ok) {
-      console.log("[rebo shelf] response body", text);
-      throw new Error(data?.message || `책장 저장 실패 (HTTP ${response.status})`);
-    }
-
-    await loadShelf();
-    console.log("[rebo shelf] bookshelf after save", state.shelf.items);
-
-    if (data?.exists) {
+    if (duplicate) {
+      console.log("[rebo shelf] duplicate prevented", { id: duplicate.id, title: duplicate.title });
       toast("이미 책장에 추가된 책입니다");
       return;
     }
 
+    const next = [normalizeShelfItem(payload), ...current];
+    writeShelfStorage(next);
+    console.log("[rebo shelf] save success", { count: next.length });
+
+    await loadShelf();
+    console.log("[rebo shelf] bookshelf after save", state.shelf.items);
     toast(`책장에 ${book.title}이 추가되었습니다`);
   } catch (error) {
     console.log("[rebo shelf] add failed", String(error.message || error));
@@ -431,7 +422,8 @@ function openDeleteModal(book) {
 
   document.getElementById("modal-cancel").addEventListener("click", closeModal);
   document.getElementById("modal-ok").addEventListener("click", async () => {
-    await fetch(`/api/bookshelf/${encodeURIComponent(book.id)}`, { method: "DELETE" });
+    removeBookFromShelf(book.id);
+    await loadShelf();
     closeModal();
     toast("삭제되었습니다.");
     setView("shelf");
@@ -590,10 +582,10 @@ function renderMy() {
 async function loadShelf() {
   state.shelf.loading = true;
   try {
-    const response = await fetch("/api/bookshelf");
-    const data = await response.json();
-    state.shelf.items = data.items || [];
+    state.shelf.items = readShelfStorage();
+    state.shelf.message = getStorageMessage();
     state.shelf.error = "";
+    console.log("[rebo shelf] load success", { count: state.shelf.items.length, mode: getStorageMode() });
   } catch (error) {
     state.shelf.error = `내 서재 조회 실패: ${String(error.message || error)}`;
     state.shelf.items = [];
@@ -603,15 +595,20 @@ async function loadShelf() {
 }
 
 async function patchBook(id, patch) {
-  const res = await fetch(`/api/bookshelf/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) {
-    const payload = await res.json().catch(() => ({}));
-    throw new Error(payload.message || "저장 실패");
+  const items = readShelfStorage();
+  const index = items.findIndex((book) => book.id === id);
+  if (index < 0) {
+    throw new Error("저장할 책을 찾을 수 없습니다.");
   }
+
+  items[index] = normalizeShelfItem({
+    ...items[index],
+    ...patch,
+    status: patch.status || items[index].status,
+  });
+
+  writeShelfStorage(items);
+  console.log("[rebo shelf] patch success", { id, patch });
 }
 
 function deriveStatus(startDate, endDate, current = "to-read") {
@@ -714,5 +711,119 @@ async function clearLegacyCacheControls() {
     console.log("[rebo] cache cleanup skipped", String(error.message || error));
   }
 }
+
+
+
+
+
+function getStorageMode() {
+  try {
+    const testKey = "__rebo_storage_test__";
+    localStorage.setItem(testKey, "1");
+    localStorage.removeItem(testKey);
+    return "localStorage";
+  } catch {
+    return "memory";
+  }
+}
+
+function getStorageMessage() {
+  if (getStorageMode() === "memory") {
+    return "현재 브라우저 저장소를 사용할 수 없어 임시 메모리 저장 모드로 동작합니다.";
+  }
+  return "";
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+function normalizeShelfItem(input) {
+  const book = input || {};
+  return {
+    id: String(book.id || "").trim() || createClientBookId(book),
+    title: String(book.title || "").trim(),
+    author: String(book.author || "").trim(),
+    publisher: String(book.publisher || "").trim(),
+    pubYear: String(book.pubYear || "").trim(),
+    isbn13: String(book.isbn13 || "").trim(),
+    isbn: String(book.isbn || "").trim(),
+    cover: String(book.cover || "/placeholder-cover.svg").trim() || "/placeholder-cover.svg",
+    status: ["to-read", "reading", "done"].includes(book.status) ? book.status : "to-read",
+    memo: String(book.memo || "").slice(0, 200),
+    startDate: String(book.startDate || ""),
+    endDate: String(book.endDate || ""),
+    review: String(book.review || "").slice(0, 2000),
+    reminder: {
+      days: Array.isArray(book.reminder?.days) ? book.reminder.days.map((d) => String(d)).slice(0, 7) : [],
+      time: typeof book.reminder?.time === "string" ? book.reminder.time : "20:00",
+    },
+    source: {
+      aladin: Boolean(book.source?.aladin),
+      nl: Boolean(book.source?.nl),
+    },
+  };
+}
+
+function readShelfStorage() {
+  if (getStorageMode() === "memory") {
+    return volatileShelfFallback.map(normalizeShelfItem);
+  }
+
+  try {
+    const raw = localStorage.getItem(LOCAL_SHELF_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed?.items) ? parsed.items : [];
+    return items.map(normalizeShelfItem);
+  } catch {
+    return [];
+  }
+}
+
+function writeShelfStorage(items) {
+  const normalizedItems = Array.isArray(items) ? items.map(normalizeShelfItem) : [];
+
+  if (getStorageMode() === "memory") {
+    volatileShelfFallback = normalizedItems;
+    return;
+  }
+
+  localStorage.setItem(LOCAL_SHELF_KEY, JSON.stringify({ items: normalizedItems }));
+}
+
+function removeBookFromShelf(bookId) {
+  const items = readShelfStorage();
+  const next = items.filter((book) => book.id !== bookId);
+  writeShelfStorage(next);
+  console.log("[rebo shelf] remove success", { id: bookId, count: next.length });
+}
+
+function findDuplicateBook(items, candidate) {
+  const books = Array.isArray(items) ? items : [];
+  const isbn13 = String(candidate?.isbn13 || "").trim();
+  const isbn = String(candidate?.isbn || "").trim();
+  const id = String(candidate?.id || "").trim();
+  const titleAuthorKey = `${normalizeText(candidate?.title)}|${normalizeText(candidate?.author)}`;
+
+  return books.find((book) => {
+    if (id && book.id === id) return true;
+    if (isbn13 && book.isbn13 && book.isbn13 === isbn13) return true;
+    if (isbn && book.isbn && book.isbn === isbn) return true;
+    const key = `${normalizeText(book.title)}|${normalizeText(book.author)}`;
+    return key.length > 1 && key === titleAuthorKey;
+  });
+}
+
+function createClientBookId(book) {
+  const base = `${normalizeText(book?.title)}-${normalizeText(book?.author)}-${normalizeText(book?.isbn13 || book?.isbn)}`;
+  return base || `book-${Date.now()}`;
+}
+
+
+
 
 
