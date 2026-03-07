@@ -109,6 +109,7 @@ app.get("/api/bookshelf", async (_req, res) => {
 
 app.post("/api/bookshelf", async (req, res) => {
   const incoming = req.body || {};
+  console.log("[api bookshelf] POST request", { title: incoming?.title, id: incoming?.id });
   const item = normalizeBookshelfItem(incoming);
 
   if (!item.title) {
@@ -119,13 +120,16 @@ app.post("/api/bookshelf", async (req, res) => {
   const index = data.items.findIndex((book) => book.id === item.id);
 
   if (index >= 0) {
-    data.items[index] = { ...data.items[index], ...item };
-  } else {
-    data.items.unshift(item);
+    return res.status(200).json({
+      item: data.items[index],
+      exists: true,
+      message: "이미 책장에 추가된 책입니다.",
+    });
   }
 
+  data.items.unshift(item);
   await writeBookshelf(data);
-  return res.status(201).json({ item });
+  return res.status(201).json({ item, exists: false });
 });
 
 app.patch("/api/bookshelf/:id", async (req, res) => {
@@ -253,5 +257,7 @@ function normalizeBookshelfItem(input) {
 }
 
 export default app;
+
+
 
 

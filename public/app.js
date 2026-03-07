@@ -283,26 +283,67 @@ function drawSearchResults() {
     btn.addEventListener("click", async () => {
       const book = state.search.items.find((item) => item.id === btn.dataset.addid);
       if (!book) return;
-
-      try {
-        const res = await fetch("/api/bookshelf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(book),
-        });
-        const payload = await res.json();
-        if (!res.ok) {
-          toast(payload.message || "저장 실패");
-          return;
-        }
-        toast(`책장에 ${book.title}이 추가되었습니다.`);
-      } catch (error) {
-        toast(`저장 실패: ${String(error.message || error)}`);
-      }
+      await addBookToShelf(book);
     });
   });
 }
 
+async function addBookToShelf(book) {
+  if (!book) return;
+  console.log("[rebo shelf] add button clicked", book.title);
+
+  const payload = {
+    id: book.id,
+    title: book.title || "",
+    author: book.author || "",
+    publisher: book.publisher || "",
+    pubYear: book.pubYear || "",
+    isbn13: book.isbn13 || "",
+    isbn: book.isbn || "",
+    cover: book.cover || "/placeholder-cover.svg",
+    status: "to-read",
+    memo: "",
+    source: book.source || { aladin: true, nl: false },
+  };
+
+  try {
+    console.log("[rebo shelf] POST /api/bookshelf", payload);
+    const response = await fetch("/api/bookshelf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    console.log("[rebo shelf] response status", response.status);
+
+    const text = await response.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      console.log("[rebo shelf] response body", text);
+      throw new Error(data?.message || `책장 저장 실패 (HTTP ${response.status})`);
+    }
+
+    await loadShelf();
+    console.log("[rebo shelf] bookshelf after save", state.shelf.items);
+
+    if (data?.exists) {
+      toast("이미 책장에 추가된 책입니다");
+      return;
+    }
+
+    toast(`책장에 ${book.title}이 추가되었습니다`);
+  } catch (error) {
+    console.log("[rebo shelf] add failed", String(error.message || error));
+    state.search.error = `책장 저장 실패: ${String(error.message || error)}`;
+    state.search.message = "";
+    drawSearchState();
+  }
+}
 function renderDetail() {
   const book = state.selectedBook;
   if (!book) return setView("shelf");
@@ -673,3 +714,5 @@ async function clearLegacyCacheControls() {
     console.log("[rebo] cache cleanup skipped", String(error.message || error));
   }
 }
+
+
