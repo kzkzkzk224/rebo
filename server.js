@@ -169,14 +169,17 @@ app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.listen(PORT, () => {
-  const missing = [];
-  if (!process.env.ALADIN_TTB_KEY) missing.push("ALADIN_TTB_KEY");
-  if (!process.env.NL_API_KEY) missing.push("NL_API_KEY (optional)");
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    const missing = [];
+    if (!process.env.ALADIN_TTB_KEY) missing.push("ALADIN_TTB_KEY");
+    if (!process.env.NL_API_KEY) missing.push("NL_API_KEY (optional)");
 
-  console.log(`rebo server running on http://localhost:${PORT}`);
-  if (missing.length > 0) console.log(`[env] missing: ${missing.join(", ")}`);
-});
+    console.log(`rebo server running on http://localhost:${PORT}`);
+    if (missing.length > 0) console.log(`[env] missing: ${missing.join(", ")}`);
+  });
+}
+
 
 function clampNumber(raw, min, max, fallback) {
   const n = Number(raw);
@@ -229,3 +232,6 @@ function normalizeBookshelfItem(input) {
 
   return normalized;
 }
+
+export default app;
+
