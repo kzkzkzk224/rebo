@@ -1,4 +1,4 @@
-﻿function mergeBookLists(primaryList, secondaryList) {
+﻿export function mergeBookLists(primaryList, secondaryList) {
   const map = new Map();
 
   for (const item of primaryList || []) {
@@ -48,7 +48,7 @@
   return Array.from(map.values());
 }
 
-function createMergeKey(book) {
+export function createMergeKey(book) {
   const isbn13 = extractIsbn13(book?.isbn13 || book?.isbn || "");
   if (isbn13) return `isbn13:${isbn13}`;
 
@@ -57,7 +57,7 @@ function createMergeKey(book) {
   return `ta:${title}::${author}`;
 }
 
-function createBookId(book) {
+export function createBookId(book) {
   const isbn13 = extractIsbn13(book?.isbn13 || book?.isbn || "");
   if (isbn13) return `isbn-${isbn13}`;
 
@@ -67,7 +67,7 @@ function createBookId(book) {
   return `book-${hash}`;
 }
 
-function normalizeTitle(text) {
+export function normalizeTitle(text) {
   return normalizeText(text)
     .toLowerCase()
     .replace(/\([^)]*\)/g, "")
@@ -77,14 +77,14 @@ function normalizeTitle(text) {
     .replace(/\s+/g, " ");
 }
 
-function normalizeAuthor(text) {
+export function normalizeAuthor(text) {
   return normalizeText(text)
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function normalizeText(text) {
+export function normalizeText(text) {
   return String(text || "")
     .replace(/<[^>]*>/g, "")
     .replace(/&quot;/g, '"')
@@ -94,7 +94,7 @@ function normalizeText(text) {
     .trim();
 }
 
-function extractIsbn13(raw) {
+export function extractIsbn13(raw) {
   const tokens = String(raw || "")
     .split(/[\s,]+/)
     .map((token) => token.replace(/[^0-9Xx]/g, ""))
@@ -103,19 +103,19 @@ function extractIsbn13(raw) {
   return tokens.find((token) => token.length === 13) || "";
 }
 
-function extractYear(raw) {
+export function extractYear(raw) {
   const text = normalizeText(raw);
   const match = text.match(/(19|20)\d{2}/);
   return match ? match[0] : "";
 }
 
-function normalizeStatus(status) {
+export function normalizeStatus(status) {
   const value = String(status || "to-read").trim();
   if (value === "to-read" || value === "reading" || value === "done") return value;
   return "to-read";
 }
 
-function dedupeByKey(items, keyFn) {
+export function dedupeByKey(items, keyFn) {
   const map = new Map();
   for (const item of items || []) {
     const key = keyFn(item);
@@ -155,16 +155,3 @@ function simpleHash(text) {
   }
   return Math.abs(hash);
 }
-
-module.exports = {
-  mergeBookLists,
-  createMergeKey,
-  createBookId,
-  normalizeStatus,
-  normalizeTitle,
-  normalizeAuthor,
-  normalizeText,
-  extractIsbn13,
-  extractYear,
-  dedupeByKey,
-};

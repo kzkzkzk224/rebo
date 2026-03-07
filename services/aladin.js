@@ -1,6 +1,6 @@
-﻿const { createMergeKey, dedupeByKey, extractYear, normalizeText, extractIsbn13 } = require("./mergeBooks");
+﻿import { createMergeKey, dedupeByKey, extractYear, normalizeText, extractIsbn13 } from "./mergeBooks.js";
 
-async function searchAladinBooks({ query, limit, apiKey }) {
+export async function searchAladinBooks({ query, limit, apiKey }) {
   const warnings = [];
 
   if (!apiKey) {
@@ -69,8 +69,3 @@ async function fetchItemSearch({ query, limit, queryType, apiKey }) {
     memo: "",
   }));
 }
-
-module.exports = {
-  searchAladinBooks,
-};
-

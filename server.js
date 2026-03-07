@@ -1,13 +1,18 @@
-﻿const path = require("path");
-const fs = require("fs/promises");
-const express = require("express");
-const dotenv = require("dotenv");
+﻿import path from "path";
+import fs from "fs/promises";
+import { fileURLToPath } from "url";
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
-const { searchAladinBooks } = require("./services/aladin");
-const { searchNationalLibraryBooks } = require("./services/nl");
-const { mergeBookLists, createBookId, normalizeStatus } = require("./services/mergeBooks");
+import { searchAladinBooks } from "./services/aladin.js";
+import { searchNationalLibraryBooks } from "./services/nl.js";
+import { mergeBookLists, createBookId, normalizeStatus } from "./services/mergeBooks.js";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT || 4173);
@@ -17,6 +22,7 @@ const BOOKSHELF_FILE = path.join(DATA_DIR, "bookshelf.json");
 
 let writeQueue = Promise.resolve();
 
+app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -36,17 +42,8 @@ app.get("/api/books/search", async (req, res) => {
   const warnings = [];
   const errors = [];
 
-  const aladinPromise = searchAladinBooks({
-    query,
-    limit,
-    apiKey: process.env.ALADIN_TTB_KEY || "",
-  });
-
-  const nlPromise = searchNationalLibraryBooks({
-    query,
-    limit,
-    apiKey: process.env.NL_API_KEY || "",
-  });
+  const aladinPromise = searchAladinBooks({ query, limit, apiKey: process.env.ALADIN_TTB_KEY || "" });
+  const nlPromise = searchNationalLibraryBooks({ query, limit, apiKey: process.env.NL_API_KEY || "" });
 
   const [aladinResult, nlResult] = await Promise.allSettled([aladinPromise, nlPromise]);
 
@@ -128,7 +125,7 @@ app.post("/api/bookshelf", async (req, res) => {
   }
 
   await writeBookshelf(data);
-  res.status(201).json({ item });
+  return res.status(201).json({ item });
 });
 
 app.patch("/api/bookshelf/:id", async (req, res) => {
@@ -150,7 +147,7 @@ app.patch("/api/bookshelf/:id", async (req, res) => {
 
   data.items[index] = next;
   await writeBookshelf(data);
-  res.json({ item: next });
+  return res.json({ item: next });
 });
 
 app.delete("/api/bookshelf/:id", async (req, res) => {
@@ -165,7 +162,7 @@ app.delete("/api/bookshelf/:id", async (req, res) => {
   }
 
   await writeBookshelf(data);
-  res.json({ ok: true });
+  return res.json({ ok: true });
 });
 
 app.get("*", (_req, res) => {
