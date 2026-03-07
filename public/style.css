@@ -1,58 +1,82 @@
 ﻿:root {
-  --bg: #f3f5f6;
-  --panel: #ffffff;
-  --ink: #2f3437;
-  --muted: #667178;
-  --line: #d9e1e5;
-  --point: #5c7a7f;
-  --point-ink: #ffffff;
-  --soft: #eef3f4;
+  --bg: #f6f2eb;
+  --bg-soft: #efe8dc;
+  --panel: #fffdf8;
+  --ink: #302924;
+  --muted: #71665d;
+  --line: #dfd3c5;
+  --point: #3e6a67;
+  --point-ink: #f7fcfb;
+  --danger: #a03e3e;
+  --warn: #8b6420;
+  --shadow: 0 14px 30px rgba(67, 46, 24, 0.12);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
-  font-family: "Segoe UI", "Noto Sans KR", sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top right, #e8f0f2 0, transparent 34%), var(--bg);
+  font-family: "Noto Sans KR", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 12% 0%, #fdf8ef 0 240px, transparent 240px),
+    radial-gradient(circle at 98% 2%, #e8ddcf 0 280px, transparent 280px),
+    var(--bg);
 }
 
 .app {
-  max-width: 1060px;
+  max-width: 1080px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 18px 14px 80px;
+  padding: 20px 14px 88px;
 }
 
 .topbar {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  background: rgba(250, 244, 234, 0.84);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  border-radius: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
 }
 
 .brand {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0.4px;
+  font-weight: 800;
 }
 
 .tag {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
   font-size: 12px;
 }
 
-.tabs { display: flex; gap: 8px; }
+.tabs {
+  display: flex;
+  gap: 8px;
+}
 
 .tab {
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: #fff;
+  color: var(--ink);
   border-radius: 999px;
   padding: 9px 14px;
   cursor: pointer;
+  font-weight: 600;
 }
 
 .tab.active {
@@ -64,15 +88,34 @@ body {
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 18px;
 }
 
-.hero h1 { margin: 0; font-size: 24px; }
-.hero p { color: var(--muted); line-height: 1.6; }
+.hero {
+  display: grid;
+  gap: 12px;
+  background:
+    linear-gradient(140deg, #fffdf8 0%, #f6efe4 100%);
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.hero p {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--muted);
+}
 
 .muted {
-  margin-top: -6px;
+  margin-top: -4px;
+  margin-bottom: 12px;
   color: var(--muted);
   font-size: 14px;
 }
@@ -85,29 +128,32 @@ body {
 }
 
 .search-box input {
-  height: 46px;
+  height: 50px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 16px;
+  background: #fff;
+}
+
+button.primary,
+button.ghost {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 button.primary {
   border: 0;
   background: var(--point);
   color: var(--point-ink);
-  border-radius: 12px;
-  padding: 10px 14px;
-  cursor: pointer;
-  font-weight: 600;
 }
 
 button.ghost {
   border: 1px solid var(--line);
   background: #fff;
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
+  color: var(--ink);
 }
 
 .state {
@@ -116,50 +162,66 @@ button.ghost {
   font-size: 14px;
 }
 
-.state.error {
-  color: #ae2f2f;
-  background: #fff1f1;
-  border: 1px solid #f2cece;
-  border-radius: 10px;
+.state.error,
+.state.warn {
+  border-radius: 12px;
   padding: 10px;
 }
 
+.state.error {
+  color: var(--danger);
+  background: #fff3f2;
+  border: 1px solid #efcdca;
+}
+
 .state.warn {
-  color: #6a4b13;
-  background: #fff8e9;
-  border: 1px solid #eed9a6;
-  border-radius: 10px;
-  padding: 10px;
+  color: var(--warn);
+  background: #fff8e8;
+  border: 1px solid #ecd8a8;
 }
 
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
 }
 
 .book-card {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   background: #fff;
+  box-shadow: 0 6px 16px rgba(55, 41, 27, 0.08);
 }
 
 .book-cover {
   width: 100%;
-  aspect-ratio: 3/4;
+  aspect-ratio: 3 / 4;
   object-fit: cover;
-  background: var(--soft);
+  background: var(--bg-soft);
 }
 
-.book-body { padding: 10px; }
-.book-title { margin: 0; font-size: 15px; font-weight: 700; }
-.book-meta { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.book-body {
+  padding: 12px;
+}
+
+.book-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.book-meta {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 
 .card-actions {
-  display: flex;
-  gap: 6px;
   margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 
 .book-list {
@@ -169,38 +231,39 @@ button.ghost {
 
 .shelf-row {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 10px;
   display: grid;
-  grid-template-columns: 66px 1fr;
+  grid-template-columns: 72px 1fr;
   gap: 10px;
   background: #fff;
 }
 
 .shelf-cover {
-  width: 66px;
-  height: 88px;
+  width: 72px;
+  height: 96px;
   object-fit: cover;
   border-radius: 8px;
-  background: var(--soft);
+  background: var(--bg-soft);
 }
 
 .row-actions {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: 1fr;
   gap: 6px;
 }
 
-select, input.memo {
+select,
+input.memo {
   width: 100%;
-  height: 34px;
+  height: 36px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0 8px;
+  padding: 0 9px;
+  background: #fff;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
@@ -212,5 +275,11 @@ select, input.memo {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .tab { width: 100%; }
+  .tab {
+    width: 100%;
+  }
+
+  .search-box {
+    grid-template-columns: 1fr;
+  }
 }
