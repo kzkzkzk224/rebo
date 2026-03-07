@@ -143,6 +143,18 @@ app.patch("/api/bookshelf/:id", async (req, res) => {
     ...current,
     status: updates.status ? normalizeStatus(updates.status) : current.status,
     memo: typeof updates.memo === "string" ? updates.memo.slice(0, 200) : current.memo,
+    startDate: typeof updates.startDate === "string" ? updates.startDate : current.startDate,
+    endDate: typeof updates.endDate === "string" ? updates.endDate : current.endDate,
+    review: typeof updates.review === "string" ? updates.review.slice(0, 2000) : current.review,
+    reminder:
+      updates.reminder && typeof updates.reminder === "object"
+        ? {
+            days: Array.isArray(updates.reminder.days)
+              ? updates.reminder.days.map((d) => String(d)).slice(0, 7)
+              : current.reminder?.days || [],
+            time: typeof updates.reminder.time === "string" ? updates.reminder.time : current.reminder?.time || "20:00",
+          }
+        : current.reminder,
   };
 
   data.items[index] = next;
@@ -220,6 +232,13 @@ function normalizeBookshelfItem(input) {
     cover: String(book.cover || "/placeholder-cover.svg").trim() || "/placeholder-cover.svg",
     status: normalizeStatus(book.status),
     memo: String(book.memo || "").slice(0, 200),
+    startDate: String(book.startDate || ""),
+    endDate: String(book.endDate || ""),
+    review: String(book.review || "").slice(0, 2000),
+    reminder: {
+      days: Array.isArray(book.reminder?.days) ? book.reminder.days.map((d) => String(d)).slice(0, 7) : [],
+      time: typeof book.reminder?.time === "string" ? book.reminder.time : "20:00",
+    },
     source: {
       aladin: Boolean(book.source?.aladin),
       nl: Boolean(book.source?.nl),
@@ -234,4 +253,5 @@ function normalizeBookshelfItem(input) {
 }
 
 export default app;
+
 
