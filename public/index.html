@@ -1,23 +1,44 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>rebo - reading service</title>
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("rebo-theme");
+          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", savedTheme || systemTheme);
+        } catch (_error) {
+          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", systemTheme);
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="/style.css?v=20260307-3" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css"
+    />
+    <link rel="stylesheet" href="/theme.css?v=20260323-1" />
+    <link rel="stylesheet" href="/style.css?v=20260323-1" />
   </head>
-  <body data-theme="light">
-    <div class="layout">
+  <body>
+    <div class="layout-shell">
       <aside class="sidebar">
-        <div class="logo-wrap">
-          <p class="logo">rebo</p>
-          <p class="domain">rebo.com</p>
+        <div class="brand-block">
+          <p class="brand-eyebrow">reading archive</p>
+          <p class="brand-logo">rebo</p>
+          <p class="brand-domain">rebo.com</p>
         </div>
-        <nav class="side-nav" id="side-nav">
+
+        <nav class="side-nav">
           <button class="nav-item active" data-view="shelf">책장</button>
           <button class="nav-item" data-view="search">검색</button>
           <button class="nav-item" data-view="stats">통계</button>
@@ -25,28 +46,33 @@
         </nav>
       </aside>
 
-      <div class="main-wrap">
+      <div class="main-shell">
         <header class="topbar">
           <div>
+            <p class="topbar-kicker">Rebo Library</p>
             <h1 id="view-title" class="view-title">책장</h1>
-            <p id="view-subtitle" class="view-subtitle">내가 저장한 책을 한눈에 확인하세요.</p>
+            <p id="view-subtitle" class="view-subtitle">책을 정리하고 독서 흐름을 쌓아보세요.</p>
           </div>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="테마 전환"></button>
         </header>
+
         <main id="view" class="view"></main>
       </div>
     </div>
 
-    <nav class="mobile-nav" id="mobile-nav">
+    <nav class="mobile-nav">
       <button class="nav-item active" data-view="shelf">책장</button>
       <button class="nav-item" data-view="search">검색</button>
       <button class="nav-item" data-view="stats">통계</button>
       <button class="nav-item" data-view="my">MY</button>
     </nav>
 
+    <input id="cover-file-input" type="file" accept="image/*" capture="environment" hidden />
+
+    <div id="sheet-root"></div>
     <div id="modal-root"></div>
     <div id="toast-root"></div>
 
-    <script src="/app.js?v=20260307-3"></script>
+    <script src="/app.js?v=20260323-1"></script>
   </body>
 </html>
-
