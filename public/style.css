@@ -222,7 +222,7 @@ html[data-theme="dark"] .theme-toggle::before {
 
 .add-card,
 .shelf-book {
-  min-height: 278px;
+  min-height: 238px;
 }
 
 .add-card {
@@ -271,24 +271,21 @@ html[data-theme="dark"] .theme-toggle::before {
     background 180ms ease;
 }
 
-.cover {
+.shelf-cover-frame,
+.detail-cover-frame {
+  display: grid;
+  place-items: center;
+  padding: 16px 16px 0;
+}
+
+.shelf-cover-image,
+.detail-cover-image {
   width: 100%;
-  aspect-ratio: 0.76;
-  object-fit: cover;
+  max-width: 132px;
+  aspect-ratio: 0.72;
+  object-fit: contain;
+  border-radius: 16px;
   background: var(--color-surface-3);
-}
-
-.book-cover-shell {
-  position: relative;
-}
-
-.book-cover-shell::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: 40%;
-  background: linear-gradient(180deg, transparent 0%, var(--color-overlay) 100%);
-  pointer-events: none;
 }
 
 .card-body {
@@ -324,13 +321,6 @@ html[data-theme="dark"] .theme-toggle::before {
   font-weight: 600;
 }
 
-.toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
 .search-field,
 .text-field,
 .date-display {
@@ -352,6 +342,28 @@ html[data-theme="dark"] .theme-toggle::before {
 .date-display::placeholder,
 textarea::placeholder {
   color: var(--color-text-tertiary);
+}
+
+.search-toolbar {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.search-toolbar .search-field {
+  padding-right: 64px;
+}
+
+.search-submit {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-primary);
+  transform: translateY(-50%);
 }
 
 .btn,
@@ -475,18 +487,71 @@ textarea::placeholder {
 
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 
 .result-card {
   overflow: hidden;
+  padding: 14px;
+}
+
+.search-result-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.result-cover {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  min-height: 136px;
+  border-radius: 18px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  padding: 10px;
+}
+
+.result-cover-image {
+  width: 100%;
+  height: 116px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: var(--color-surface-3);
+}
+
+.result-copy {
+  min-width: 0;
 }
 
 .result-actions {
   display: flex;
   gap: 10px;
   margin-top: 14px;
+}
+
+.search-empty {
+  min-height: 55vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.search-empty-keyword {
+  margin: 0;
+  font-family: "Lora", serif;
+  font-size: 36px;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.search-empty-divider {
+  margin: 0;
+  font-size: 20px;
+  color: var(--color-text-tertiary);
 }
 
 .detail-layout {
@@ -753,7 +818,10 @@ textarea::placeholder {
   left: 50%;
   bottom: 94px;
   transform: translateX(-50%);
-  min-width: min(320px, calc(100vw - 32px));
+  min-width: min(320px, calc(100vw - 48px));
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
   padding: 14px 18px;
   border-radius: 18px;
   background: var(--color-surface-3);
@@ -762,6 +830,17 @@ textarea::placeholder {
   box-shadow: var(--shadow-strong);
   z-index: 110;
   text-align: center;
+}
+
+.toast-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .stat-grid {
@@ -898,7 +977,6 @@ textarea::placeholder {
   }
 
   .shelf-grid,
-  .result-grid,
   .my-grid,
   .stat-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -963,6 +1041,20 @@ textarea::placeholder {
 
   .sheet {
     border-radius: 28px 28px 0 0;
+  }
+
+  .search-empty-keyword {
+    font-size: 28px;
+  }
+
+  .search-result-row {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .result-cover {
+    width: 88px;
+    min-height: 128px;
   }
 }
 

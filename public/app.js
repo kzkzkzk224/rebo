@@ -4,16 +4,16 @@ const STATUS_LABEL = {
   done: "완독",
 };
 
-const LOCAL_SHELF_KEY = "rebo-bookshelf-v2";
+const LOCAL_SHELF_KEY = "rebo-bookshelf-v3";
 const LOCAL_THEME_KEY = "rebo-theme";
 const CALENDAR_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 let volatileShelfFallback = [];
 
 const VIEW_META = {
   shelf: { title: "책장", subtitle: "추가한 책을 부드럽게 쌓아두는 개인 서가예요." },
-  search: { title: "검색", subtitle: "책 제목이나 저자명으로 책을 찾아 바로 추가할 수 있어요." },
+  search: { title: "검색", subtitle: "책 제목이나 저자명으로 책을 찾아 바로 책장에 담을 수 있어요." },
   stats: { title: "통계", subtitle: "읽기 상태와 흐름을 한눈에 확인해보세요." },
-  my: { title: "MY", subtitle: "테마와 알림, 계정 관련 설정을 정리해두었어요." },
+  my: { title: "MY", subtitle: "테마와 저장 방식을 확인할 수 있어요." },
   detail: { title: "책장 > 상세", subtitle: "저장한 책의 상태와 기록을 업데이트할 수 있어요." },
   manual: { title: "책장 > 직접 추가", subtitle: "책 표지와 기본 정보를 입력해 책장에 직접 추가해보세요." },
 };
@@ -21,8 +21,6 @@ const VIEW_META = {
 const state = {
   view: "shelf",
   selectedBookId: null,
-  sheet: null,
-  modal: null,
   toastTimer: null,
   search: {
     query: "",
@@ -37,9 +35,6 @@ const state = {
     loading: false,
     error: "",
     message: "",
-  },
-  stats: {
-    mode: "weekly",
   },
   my: {
     theme: getInitialTheme(),
@@ -72,9 +67,7 @@ function bindThemeEvents() {
   $themeToggle.addEventListener("click", () => {
     const nextTheme = state.my.theme === "dark" ? "light" : "dark";
     applyTheme(nextTheme, true);
-    if (state.view === "my") {
-      renderMy();
-    }
+    if (state.view === "my") renderMy();
   });
 
   const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -82,9 +75,7 @@ function bindThemeEvents() {
     media.addEventListener("change", (event) => {
       if (localStorage.getItem(LOCAL_THEME_KEY)) return;
       applyTheme(event.matches ? "dark" : "light", false);
-      if (state.view === "my") {
-        renderMy();
-      }
+      if (state.view === "my") renderMy();
     });
   }
 }
@@ -132,7 +123,6 @@ async function setView(view) {
     return;
   }
   if (view === "my") {
-    await loadShelf();
     renderMy();
     return;
   }
@@ -183,8 +173,8 @@ async function renderShelf() {
           .map(
             (book) => `
               <button class="shelf-book" data-bookid="${escapeAttr(book.id)}" type="button">
-                <div class="book-cover-shell">
-                  <img class="cover" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
+                <div class="shelf-cover-frame">
+                  <img class="shelf-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
                 </div>
                 <div class="card-body">
                   <p class="book-title">${escapeHtml(book.title)}</p>
@@ -209,7 +199,6 @@ async function renderShelf() {
 }
 
 function openAddSheet() {
-  state.sheet = "add";
   $sheetRoot.innerHTML = `
     <div class="sheet-backdrop" id="sheet-backdrop">
       <section class="sheet" role="dialog" aria-modal="true" aria-label="책 추가">
@@ -225,9 +214,7 @@ function openAddSheet() {
   `;
 
   document.getElementById("sheet-backdrop").addEventListener("click", (event) => {
-    if (event.target.id === "sheet-backdrop") {
-      closeSheet();
-    }
+    if (event.target.id === "sheet-backdrop") closeSheet();
   });
   document.getElementById("sheet-search").addEventListener("click", () => {
     closeSheet();
@@ -241,7 +228,6 @@ function openAddSheet() {
 }
 
 function closeSheet() {
-  state.sheet = null;
   $sheetRoot.innerHTML = "";
 }
 
@@ -250,19 +236,19 @@ function renderSearch() {
     <section class="panel search-panel">
       <div class="section-head">
         <div>
-          <h2 class="section-title">책 검색</h2>
-          <p class="section-caption">책 제목이나 저자명으로 찾은 뒤 바로 책장에 담을 수 있어요.</p>
+          <h2 class="section-title">검색</h2>
+          <p class="section-caption">책 제목이나 저자명으로 책을 찾아 바로 책장에 담을 수 있어요.</p>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="search-toolbar">
         <input
           id="search-input"
           class="search-field"
           type="text"
-          placeholder="책 제목 또는 저자명을 입력하세요."
+          placeholder="검색어"
           value="${escapeAttr(state.search.query)}"
         />
-        <button id="search-button" class="btn primary" type="button">검색</button>
+        <button id="search-button" class="search-submit" type="button" aria-label="검색">⌕</button>
       </div>
       <div id="search-state"></div>
       <div id="search-results" class="result-grid"></div>
@@ -272,9 +258,7 @@ function renderSearch() {
   const $input = document.getElementById("search-input");
   document.getElementById("search-button").addEventListener("click", runSearchFromInput);
   $input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      runSearchFromInput();
-    }
+    if (event.key === "Enter") runSearchFromInput();
   });
 
   drawSearchState();
@@ -289,7 +273,7 @@ async function runSearchFromInput() {
   if (!query) {
     state.search.loading = false;
     state.search.error = "";
-    state.search.message = "검색어를 입력해주세요.";
+    state.search.message = "";
     state.search.items = [];
     state.search.warnings = [];
     drawSearchState();
@@ -361,6 +345,17 @@ function drawSearchState() {
   const $state = document.getElementById("search-state");
   if (!$state) return;
 
+  if (!state.search.query && !state.search.loading) {
+    $state.innerHTML = `
+      <div class="search-empty">
+        <p class="search-empty-keyword">책 제목</p>
+        <p class="search-empty-divider">또는</p>
+        <p class="search-empty-keyword">저자를 입력하세요.</p>
+      </div>
+    `;
+    return;
+  }
+
   if (state.search.loading) {
     $state.innerHTML = `<div class="state">로딩 중...</div>`;
     return;
@@ -400,16 +395,16 @@ function drawSearchResults() {
   $list.innerHTML = state.search.items
     .map(
       (book) => `
-        <article class="result-card">
-          <div class="book-cover-shell">
-            <img class="cover" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
+        <article class="result-card search-result-row">
+          <div class="result-cover">
+            <img class="result-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
           </div>
-          <div class="card-body">
+          <div class="result-copy">
             <p class="book-title">${escapeHtml(book.title)}</p>
             <p class="book-meta">${escapeHtml(book.author || "저자 정보 없음")}</p>
             <p class="book-meta">${escapeHtml(book.publisher || "출판사 정보 없음")} · ${escapeHtml(book.pubYear || "연도 정보 없음")}</p>
             <div class="result-actions">
-              <button class="btn primary full" data-addid="${escapeAttr(book.id)}" type="button">책장에 추가</button>
+              <button class="btn primary full add-result-button" data-addid="${escapeAttr(book.id)}" type="button">⊕ 책장에 추가하기</button>
             </div>
           </div>
         </article>
@@ -454,7 +449,7 @@ async function addBookToShelf(book) {
     console.log("[rebo shelf] save success", { count: next.length });
     await loadShelf();
     console.log("[rebo shelf] bookshelf after save", state.shelf.items);
-    toast(`'${book.title}'이 책장에 추가되었습니다.`);
+    toast(`「${book.title}」이 책장에 추가되었습니다.`);
   } catch (error) {
     console.log("[rebo shelf] add failed", String(error.message || error));
     state.search.error = `책장 저장 실패: ${String(error.message || error)}`;
@@ -545,11 +540,11 @@ function renderManualAdd() {
   document.getElementById("manual-cover-button").addEventListener("click", openPhotoPermissionModal);
   document.getElementById("manual-title").addEventListener("input", (event) => {
     state.manualForm.title = event.target.value;
-    renderManualAdd();
+    syncManualSubmitState();
   });
   document.getElementById("manual-author").addEventListener("input", (event) => {
     state.manualForm.author = event.target.value;
-    renderManualAdd();
+    syncManualSubmitState();
   });
   document.querySelectorAll("[data-status]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -580,6 +575,13 @@ function renderManualAdd() {
   document.getElementById("manual-submit").addEventListener("click", submitManualBook);
 }
 
+function syncManualSubmitState() {
+  const $button = document.getElementById("manual-submit");
+  if (!$button) return;
+  const enabled = state.manualForm.title.trim().length > 0 && state.manualForm.author.trim().length > 0;
+  $button.disabled = !enabled;
+}
+
 function renderStatusButton(status, label, currentStatus) {
   return `<button class="status-button ${status === currentStatus ? "active" : ""}" data-status="${status}" type="button">${label}</button>`;
 }
@@ -605,11 +607,7 @@ function renderCalendar(monthDate, form, activeField) {
       iso < form.endDate;
 
     cells.push(`
-      <button
-        class="calendar-cell ${isActive ? "active" : ""} ${isRange ? "range" : ""}"
-        type="button"
-        data-calendar-date="${iso}"
-      >
+      <button class="calendar-cell ${isActive ? "active" : ""} ${isRange ? "range" : ""}" type="button" data-calendar-date="${iso}">
         ${day}
       </button>
     `);
@@ -676,7 +674,6 @@ function applyManualDate(isoDate) {
 }
 
 function openPhotoPermissionModal() {
-  state.modal = "photo-permission";
   $modalRoot.innerHTML = `
     <div class="modal-backdrop" id="modal-backdrop">
       <section class="modal-card" role="dialog" aria-modal="true" aria-label="사진 접근 허용">
@@ -691,13 +688,9 @@ function openPhotoPermissionModal() {
   `;
 
   document.getElementById("modal-backdrop").addEventListener("click", (event) => {
-    if (event.target.id === "modal-backdrop") {
-      closeModal();
-    }
+    if (event.target.id === "modal-backdrop") closeModal();
   });
-  document.getElementById("modal-close").addEventListener("click", () => {
-    closeModal();
-  });
+  document.getElementById("modal-close").addEventListener("click", closeModal);
   document.getElementById("modal-allow").addEventListener("click", () => {
     closeModal();
     $coverFileInput.click();
@@ -705,7 +698,6 @@ function openPhotoPermissionModal() {
 }
 
 function closeModal() {
-  state.modal = null;
   $modalRoot.innerHTML = "";
 }
 
@@ -734,7 +726,7 @@ async function submitManualBook() {
   writeShelfStorage([book, ...current]);
   await loadShelf();
   state.manualForm = createManualForm();
-  toast(`'${book.title}'이 책장에 추가되었습니다.`);
+  toast(`「${book.title}」이 책장에 추가되었습니다.`);
   setView("shelf");
 }
 
@@ -749,7 +741,9 @@ function renderDetail() {
     <section class="panel detail-panel">
       <div class="detail-layout">
         <aside class="detail-book">
-          <img class="cover" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
+          <div class="detail-cover-frame">
+            <img class="detail-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
+          </div>
           <div class="card-body">
             <p class="book-title">${escapeHtml(book.title)}</p>
             <p class="book-meta">${escapeHtml(book.author || "저자 정보 없음")}</p>
@@ -768,30 +762,7 @@ function renderDetail() {
               ${renderStatusButton("reading", "읽는 중", book.status)}
               ${renderStatusButton("done", "완독", book.status)}
             </div>
-            <div class="date-grid ${book.status === "done" ? "two" : ""}">
-              ${
-                book.status !== "to-read"
-                  ? `
-                    <div class="date-field">
-                      <span class="field-label">읽기 시작한 날</span>
-                      <div class="date-display">${escapeHtml(formatDateForDisplay(book.startDate) || "아직 선택하지 않았어요.")}</div>
-                    </div>
-                  `
-                  : ""
-              }
-              ${
-                book.status === "done"
-                  ? `
-                    <div class="date-field">
-                      <span class="field-label">완독한 날</span>
-                      <div class="date-display">${escapeHtml(formatDateForDisplay(book.endDate) || "아직 선택하지 않았어요.")}</div>
-                    </div>
-                  `
-                  : ""
-              }
-            </div>
           </section>
-
           <section class="section-card">
             <h3>한 줄 메모</h3>
             <textarea id="detail-review" rows="6" maxlength="2000" placeholder="독후감을 남겨보세요.">${escapeHtml(book.review || "")}</textarea>
@@ -897,7 +868,7 @@ function renderMy() {
         <article class="my-card">
           <h3>저장 방식</h3>
           <p class="my-copy">현재 책장은 <strong>${storageModeLabel}</strong> 방식으로 보관되고 있어요.</p>
-          <p class="my-copy">Vercel 배포 환경에서도 바로 동작하도록 브라우저 저장소 기준으로 구성했습니다.</p>
+          <p class="my-copy">브라우저 저장소 기반이라 배포 환경에서도 바로 동작합니다.</p>
         </article>
       </div>
     </section>
@@ -929,10 +900,7 @@ async function loadShelf() {
 async function patchBook(bookId, patch) {
   const items = readShelfStorage();
   const index = items.findIndex((book) => book.id === bookId);
-  if (index < 0) {
-    throw new Error("저장할 책을 찾을 수 없습니다.");
-  }
-
+  if (index < 0) throw new Error("저장할 책을 찾을 수 없습니다.");
   items[index] = normalizeShelfItem({ ...items[index], ...patch });
   writeShelfStorage(items);
   console.log("[rebo shelf] patch success", { id: bookId, patch });
@@ -953,9 +921,7 @@ function createManualForm() {
 
 function getInitialTheme() {
   const savedTheme = localStorage.getItem(LOCAL_THEME_KEY);
-  if (savedTheme === "dark" || savedTheme === "light") {
-    return savedTheme;
-  }
+  if (savedTheme === "dark" || savedTheme === "light") return savedTheme;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
@@ -963,9 +929,7 @@ function applyTheme(theme, persist) {
   const nextTheme = theme === "dark" ? "dark" : "light";
   state.my.theme = nextTheme;
   document.documentElement.setAttribute("data-theme", nextTheme);
-  if (persist) {
-    localStorage.setItem(LOCAL_THEME_KEY, nextTheme);
-  }
+  if (persist) localStorage.setItem(LOCAL_THEME_KEY, nextTheme);
 }
 
 function getStorageMode() {
@@ -997,12 +961,10 @@ function readShelfStorage() {
 
 function writeShelfStorage(items) {
   const normalizedItems = items.map(normalizeShelfItem);
-
   if (getStorageMode() === "memory") {
     volatileShelfFallback = normalizedItems;
     return;
   }
-
   localStorage.setItem(LOCAL_SHELF_KEY, JSON.stringify({ items: normalizedItems }));
 }
 
@@ -1046,18 +1008,11 @@ function normalizeShelfItem(book) {
 }
 
 function normalizeText(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "");
+  return String(value || "").trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
 function createClientBookId(book) {
-  const parts = [
-    normalizeText(book.title),
-    normalizeText(book.author),
-    normalizeText(book.isbn13 || book.isbn || ""),
-  ].filter(Boolean);
+  const parts = [normalizeText(book.title), normalizeText(book.author), normalizeText(book.isbn13 || book.isbn || "")].filter(Boolean);
   return parts.join("-") || `book-${Date.now()}`;
 }
 
@@ -1089,10 +1044,8 @@ function toDateInputValue(date) {
 }
 
 function toast(message) {
-  $toastRoot.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`;
-  if (state.toastTimer) {
-    window.clearTimeout(state.toastTimer);
-  }
+  $toastRoot.innerHTML = `<div class="toast"><span class="toast-icon">✓</span><span>${escapeHtml(message)}</span></div>`;
+  if (state.toastTimer) window.clearTimeout(state.toastTimer);
   state.toastTimer = window.setTimeout(() => {
     $toastRoot.innerHTML = "";
   }, 1800);
@@ -1117,7 +1070,6 @@ async function clearLegacyCacheControls() {
       const registrations = await navigator.serviceWorker.getRegistrations();
       await Promise.all(registrations.map((registration) => registration.unregister()));
     }
-
     if ("caches" in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map((key) => caches.delete(key)));
