@@ -13,6 +13,7 @@ const VIEW_META = {
   shelf: { title: "책장", subtitle: "추가한 책을 차분하게 모아보고, 상세 기록까지 이어갈 수 있어요." },
   search: { title: "검색", subtitle: "책 제목이나 저자명으로 책을 찾아 바로 책장에 담아보세요." },
   stats: { title: "통계", subtitle: "읽기 상태와 완독 흐름을 가볍게 확인할 수 있어요." },
+  friends: { title: "친구", subtitle: "" },
   my: { title: "MY", subtitle: "테마와 저장 방식을 확인하고 설정할 수 있어요." },
   detail: { title: "책 상세", subtitle: "읽기 상태, 날짜, 독후감을 한곳에서 관리해보세요." },
   manual: { title: "책장 > 직접 추가", subtitle: "책 표지와 기본 정보를 입력해 직접 추가할 수 있어요." },
@@ -160,6 +161,11 @@ async function setView(view) {
     resetDetailState();
     await loadShelf();
     renderStats();
+    return;
+  }
+  if (view === "friends") {
+    resetDetailState();
+    renderFriends();
     return;
   }
   if (view === "my") {
@@ -1339,6 +1345,19 @@ function renderMy() {
       renderMy();
     });
   });
+}
+
+function renderFriends() {
+  $view.innerHTML = `
+    <section class="panel my-panel">
+      <div class="my-grid single">
+        <article class="my-card">
+          <h3>친구 기능 준비 중</h3>
+          <p class="my-copy">친구와 독서 기록을 나누는 화면은 다음 단계에서 이어서 구현할게요.</p>
+        </article>
+      </div>
+    </section>
+  `;
 }
 
 async function loadShelf() {
