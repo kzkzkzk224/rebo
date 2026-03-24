@@ -178,6 +178,10 @@ html[data-theme="dark"] .theme-toggle::before {
   padding: 18px;
 }
 
+.detail-panel {
+  position: relative;
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -389,6 +393,13 @@ textarea::placeholder {
   background: var(--color-surface-2);
 }
 
+.detail-header-button:hover,
+.icon-button:hover,
+.detail-save-button:hover,
+.review-display:hover {
+  background: var(--color-accent-soft);
+}
+
 .btn,
 .nav-item,
 .status-button,
@@ -455,8 +466,8 @@ textarea::placeholder {
 }
 
 .btn.primary {
-  background: #18a0fb;
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
   border-color: transparent;
   box-shadow: none;
 }
@@ -589,6 +600,13 @@ textarea::placeholder {
   color: var(--color-text-tertiary);
 }
 
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
@@ -625,6 +643,184 @@ textarea::placeholder {
 .section-card h3 {
   margin: 0 0 12px;
   font-size: 18px;
+}
+
+.detail-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.detail-screen-title {
+  margin: 0;
+  text-align: center;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.019em;
+  font-weight: 700;
+}
+
+.detail-header-button,
+.icon-button,
+.detail-save-button {
+  min-height: 30px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: 0;
+}
+
+.detail-header-button,
+.icon-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+}
+
+.detail-save-button {
+  justify-self: end;
+  padding: 7px 0;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: -0.006em;
+  font-weight: 600;
+}
+
+.detail-mobile {
+  display: grid;
+  gap: 16px;
+}
+
+.detail-cover-block {
+  display: grid;
+  place-items: center;
+}
+
+.detail-cover-alone {
+  padding: 0;
+}
+
+.detail-cover-alone .detail-cover-image {
+  max-width: 156px;
+}
+
+.detail-camera {
+  width: 156px;
+}
+
+.detail-meta-center {
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.meta-stack {
+  display: grid;
+}
+
+.detail-book-title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 32px;
+  letter-spacing: -0.016em;
+  font-weight: 700;
+}
+
+.detail-book-author {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.011em;
+  color: var(--color-text-secondary);
+}
+
+.detail-section {
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.menu-panel {
+  position: absolute;
+  top: 72px;
+  right: 18px;
+  display: grid;
+  min-width: 182px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-strong);
+  z-index: 5;
+}
+
+.menu-item {
+  min-height: 54px;
+  padding: 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: left;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.011em;
+}
+
+.menu-item:last-child {
+  border-bottom: 0;
+}
+
+.menu-item.danger {
+  color: var(--color-danger);
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.review-count {
+  font-size: 13px;
+  line-height: 24px;
+  letter-spacing: -0.0025em;
+  color: var(--color-text-secondary);
+}
+
+.review-display,
+.review-textarea {
+  width: 100%;
+  min-height: 196px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-3);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.review-display {
+  display: block;
+}
+
+.review-textarea {
+  resize: vertical;
+}
+
+.review-textarea.is-editing {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.review-placeholder {
+  color: var(--color-text-tertiary);
 }
 
 .status-row {
@@ -1084,8 +1280,7 @@ textarea::placeholder {
   .my-grid,
   .stat-grid,
   .date-grid.two,
-  .detail-layout,
-  .toolbar {
+  .detail-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1104,6 +1299,17 @@ textarea::placeholder {
   .search-result-row {
     grid-template-columns: 88px minmax(0, 1fr);
     gap: 14px;
+  }
+
+  .detail-screen-title {
+    font-size: 20px;
+    line-height: 32px;
+  }
+
+  .menu-panel {
+    right: 14px;
+    left: 14px;
+    min-width: 0;
   }
 
   .result-cover {
