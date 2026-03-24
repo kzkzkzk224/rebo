@@ -11,7 +11,7 @@ body {
   margin: 0;
   min-width: 360px;
   min-height: 100vh;
-  font-family: "Pretendard", "Inter", sans-serif;
+  font-family: "Pretendard", sans-serif;
   background:
     var(--surface-gradient),
     linear-gradient(180deg, var(--color-surface-2) 0%, var(--color-bg) 28%, var(--color-bg) 100%);
@@ -82,7 +82,7 @@ img {
 
 .brand-logo {
   margin: 8px 0 4px;
-  font-family: "Lora", serif;
+  font-family: "Pretendard", sans-serif;
   font-size: 34px;
   font-weight: 700;
 }
@@ -107,11 +107,11 @@ img {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 24px;
-  border-radius: 30px;
+  padding: 18px 20px;
+  border-radius: 12px;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
-  box-shadow: var(--shadow-soft);
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 0 var(--color-divider);
 }
 
 .topbar-kicker {
@@ -155,10 +155,10 @@ html[data-theme="dark"] .theme-toggle::before {
 }
 
 .panel {
-  border-radius: 28px;
+  border-radius: 8px;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
-  box-shadow: var(--shadow-soft);
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 0 var(--color-divider);
 }
 
 .shelf-panel,
@@ -214,10 +214,10 @@ html[data-theme="dark"] .theme-toggle::before {
 .result-card,
 .stat-card,
 .my-card {
-  border-radius: 24px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
-  box-shadow: var(--shadow-soft);
+  background: var(--color-surface);
+  box-shadow: none;
 }
 
 .add-card,
@@ -294,9 +294,10 @@ html[data-theme="dark"] .theme-toggle::before {
 
 .book-title {
   margin: 0;
-  font-family: "Lora", serif;
-  font-size: 18px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 17px;
   line-height: 1.35;
+  font-weight: 600;
 }
 
 .book-meta {
@@ -364,6 +365,10 @@ textarea::placeholder {
   background: transparent;
   color: var(--color-text-primary);
   transform: translateY(-50%);
+}
+
+.search-submit:hover {
+  background: var(--color-surface-2);
 }
 
 .btn,
@@ -542,10 +547,11 @@ textarea::placeholder {
 
 .search-empty-keyword {
   margin: 0;
-  font-family: "Lora", serif;
+  font-family: "Pretendard", sans-serif;
   font-size: 36px;
   line-height: 1.2;
   color: var(--color-text-primary);
+  font-weight: 700;
 }
 
 .search-empty-divider {
@@ -562,9 +568,9 @@ textarea::placeholder {
 
 .detail-book {
   padding: 18px;
-  border-radius: 24px;
+  border-radius: 8px;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface-2) 0%, var(--color-surface-3) 100%);
+  background: var(--color-surface);
 }
 
 .detail-actions,
@@ -582,7 +588,7 @@ textarea::placeholder {
 
 .section-card {
   padding: 18px;
-  border-radius: 24px;
+  border-radius: 8px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -741,10 +747,10 @@ textarea::placeholder {
 .sheet {
   width: min(100%, 560px);
   padding: 18px;
-  border-radius: 28px 28px 0 0;
+  border-radius: 12px 12px 0 0;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
-  box-shadow: var(--shadow-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .sheet-handle {
@@ -789,10 +795,10 @@ textarea::placeholder {
 .modal-card {
   width: min(100%, 420px);
   padding: 20px;
-  border-radius: 28px;
+  border-radius: 10px;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
-  box-shadow: var(--shadow-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .modal-card h3 {
