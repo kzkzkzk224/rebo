@@ -1,4 +1,4 @@
-* {
+﻿* {
   box-sizing: border-box;
 }
 
@@ -252,6 +252,12 @@ html[data-theme="dark"] .theme-toggle::before {
   box-shadow: none;
 }
 
+.shelf-panel .add-card,
+.shelf-panel .shelf-book {
+  border: 0;
+  background: transparent;
+}
+
 .add-card,
 .shelf-book {
   min-height: 238px;
@@ -306,8 +312,8 @@ html[data-theme="dark"] .theme-toggle::before {
 .shelf-cover-frame,
 .detail-cover-frame {
   display: grid;
-  place-items: center;
-  padding: 16px 16px 0;
+  place-items: start center;
+  padding: 0;
 }
 
 .shelf-cover-image,
@@ -316,12 +322,17 @@ html[data-theme="dark"] .theme-toggle::before {
   max-width: 132px;
   aspect-ratio: 0.72;
   object-fit: contain;
+  object-position: top center;
   border-radius: 16px;
   background: var(--color-surface-3);
 }
 
 .card-body {
-  padding: 14px;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 6px;
+  padding: 12px 4px 0;
 }
 
 .book-title {
@@ -508,7 +519,7 @@ textarea::placeholder {
   flex-direction: column;
   text-align: center;
   font-weight: 600;
-  gap: 6px;
+  gap: 4px;
   border-color: transparent;
 }
 
@@ -533,9 +544,10 @@ textarea::placeholder {
 }
 
 .nav-label {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 8px;
+  line-height: 12px;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .state {
@@ -583,6 +595,23 @@ textarea::placeholder {
 
 .search-panel .result-cover {
   border: 0;
+}
+
+.search-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.search-page-indicator {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .search-result-row {
@@ -1289,6 +1318,26 @@ textarea::placeholder {
   text-align: center;
 }
 
+.stats-period-select-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.stats-period-select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.019em;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .stats-period-title,
 .stats-period-subtitle,
 .stats-summary-label,
@@ -1408,7 +1457,7 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: center;
+  align-items: start;
 }
 
 .stats-book-meta {
@@ -1472,7 +1521,7 @@ textarea::placeholder {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
-  gap: 20px;
+  gap: 12px;
   border-top: 1px solid var(--color-divider);
   background: var(--color-surface);
   backdrop-filter: blur(18px);
@@ -1649,8 +1698,54 @@ textarea::placeholder {
   }
 }
 
-@media (max-width: 420px) {
-  .shelf-grid {
-    grid-template-columns: 1fr;
-  }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.to-read {
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
+.status-badge.reading {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
+.status-badge.done {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.policy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.policy-head h3 {
+  margin: 0;
+}
+
+.policy-body {
+  display: grid;
+  gap: 10px;
+}
+
+.policy-body p {
+  margin: 0;
+}
+
+.modal-card-wide {
+  width: min(100%, 520px);
 }

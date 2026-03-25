@@ -1,4 +1,4 @@
-const STATUS_LABEL = {
+﻿const STATUS_LABEL = {
   "to-read": "읽을 예정",
   reading: "읽는 중",
   done: "완독",
@@ -27,6 +27,7 @@ const state = {
   search: {
     query: "",
     items: [],
+    page: 1,
     loading: false,
     message: "",
     error: "",
@@ -245,6 +246,7 @@ async function renderShelf() {
                   <img class="shelf-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
                 </div>
                 <div class="card-body">
+                  <span class="status-badge ${escapeAttr(book.status)}">${escapeHtml(getStatusLabel(book.status))}</span>
                   <p class="book-title clamp-2">${escapeHtml(book.title)}</p>
                   <p class="book-meta">${escapeHtml(book.author || "저자 정보 없음")}</p>
                 </div>
@@ -344,6 +346,7 @@ async function runSearchFromInput() {
     state.search.error = "";
     state.search.message = "";
     state.search.items = [];
+    state.search.page = 1;
     state.search.warnings = [];
     drawSearchState();
     drawSearchResults();
@@ -362,6 +365,7 @@ async function runSearchFromInput() {
 
   state.search.loading = false;
   state.search.items = result.items;
+  state.search.page = 1;
   state.search.warnings = result.warnings;
   state.search.error = result.error;
   state.search.message = result.error ? "" : result.items.length > 0 ? `검색 결과 ${result.items.length}건` : `${buildTopicMessage(query)} 찾을 수 없습니다.`;
@@ -451,31 +455,57 @@ function drawSearchResults() {
     return;
   }
 
-  $list.innerHTML = state.search.items
-    .map(
-      (book) => `
-        <article class="result-card search-result-row">
-          <div class="result-cover">
-            <img class="result-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
-          </div>
-          <div class="result-copy">
-            <p class="book-title clamp-2">${escapeHtml(book.title)}</p>
-            <p class="book-meta">${escapeHtml(book.author || "저자 정보 없음")}</p>
-            <p class="book-meta">${escapeHtml(book.publisher || "출판사 정보 없음")} · ${escapeHtml(book.pubYear || "연도 정보 없음")}</p>
-            <div class="result-actions">
-              <button class="btn primary full add-result-button" data-addid="${escapeAttr(book.id)}" type="button">책장에 추가하기</button>
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(state.search.items.length / pageSize));
+  if (state.search.page > totalPages) state.search.page = totalPages;
+  const startIndex = (state.search.page - 1) * pageSize;
+  const visibleItems = state.search.items.slice(startIndex, startIndex + pageSize);
+
+  $list.innerHTML = `
+    ${visibleItems
+      .map(
+        (book) => `
+          <article class="result-card search-result-row">
+            <div class="result-cover">
+              <img class="result-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
             </div>
+            <div class="result-copy">
+              <p class="book-title clamp-2">${escapeHtml(book.title)}</p>
+              <p class="book-meta">${escapeHtml(book.author || "저자 정보 없음")}</p>
+              <p class="book-meta">${escapeHtml(book.publisher || "출판사 정보 없음")} · ${escapeHtml(book.pubYear || "연도 정보 없음")}</p>
+              <div class="result-actions">
+                <button class="btn primary full add-result-button" data-addid="${escapeAttr(book.id)}" type="button">책장에 추가하기</button>
+              </div>
+            </div>
+          </article>
+        `,
+      )
+      .join("")}
+    ${
+      totalPages > 1
+        ? `
+          <div class="search-pagination">
+            <button class="btn ghost" data-search-page-move="-1" type="button" ${state.search.page === 1 ? "disabled" : ""}>이전</button>
+            <span class="search-page-indicator">${state.search.page} / ${totalPages}</span>
+            <button class="btn ghost" data-search-page-move="1" type="button" ${state.search.page === totalPages ? "disabled" : ""}>다음</button>
           </div>
-        </article>
-      `,
-    )
-    .join("");
+        `
+        : ""
+    }
+  `;
 
   $list.querySelectorAll("[data-addid]").forEach((button) => {
     button.addEventListener("click", async () => {
       const book = state.search.items.find((item) => item.id === button.dataset.addid);
       if (!book) return;
       await addBookToShelf(book);
+    });
+  });
+
+  $list.querySelectorAll("[data-search-page-move]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.search.page = Math.max(1, state.search.page + Number(button.dataset.searchPageMove || 0));
+      drawSearchResults();
     });
   });
 }
@@ -1325,7 +1355,17 @@ function renderStats() {
       <div class="stats-period-row">
         <button class="stats-arrow" data-stats-shift="-1" type="button">‹</button>
         <div class="stats-period-copy">
-          <p class="stats-period-title">${escapeHtml(statsView.periodTitle)}</p>
+          <div class="stats-period-select-wrap">
+            <select id="stats-period-select" class="stats-period-select" aria-label="통계 기간 선택">
+              ${statsView.options
+                .map(
+                  (option) => `
+                    <option value="${escapeAttr(String(option.value))}" ${option.selected ? "selected" : ""}>${escapeHtml(option.label)}</option>
+                  `,
+                )
+                .join("")}
+            </select>
+          </div>
           <p class="stats-period-subtitle">${escapeHtml(statsView.periodSubtitle)}</p>
         </div>
         <button class="stats-arrow" data-stats-shift="1" type="button">›</button>
@@ -1369,7 +1409,6 @@ function renderStats() {
       <section class="stats-books-card">
         <div class="stats-chart-head">
           <h3>${escapeHtml(statsView.listTitle)}</h3>
-          <span>${escapeHtml(statsView.listCaption)}</span>
         </div>
         <div class="stats-book-list">
           ${statsView.bookRows
@@ -1384,7 +1423,7 @@ function renderStats() {
                     </div>
                   </div>
                   <div class="stats-book-values">
-                    <strong>${row.pages}p</strong>
+                    <strong>${row.currentPages}p / ${row.totalPages}p</strong>
                     <span>${row.percent}%</span>
                   </div>
                   <div class="stats-book-track">
@@ -1406,9 +1445,13 @@ function renderStats() {
     });
   });
 
+  document.getElementById("stats-period-select")?.addEventListener("change", (event) => {
+    applyStatsPeriodSelection(event.target.value);
+  });
+
   document.querySelectorAll("[data-stats-shift]").forEach((button) => {
     button.addEventListener("click", () => {
-      shiftStatsPeriod(Number(button.dataset.statsShift));
+      shiftStatsPeriod(Number(button.dataset.statsShift || 0));
       renderStats();
     });
   });
@@ -1437,6 +1480,16 @@ function renderMy() {
           <p class="my-copy">현재 책장은 <strong>${storageModeLabel}</strong> 기반으로 저장되고 있어요.</p>
           <p class="my-copy">브라우저 저장 기반이라 Vercel 배포 환경에서도 바로 동작합니다.</p>
         </article>
+        <article class="my-card">
+          <h3>이용약관</h3>
+          <p class="my-copy">서비스 이용 전, 차분히 살펴보실 수 있어요.</p>
+          <button class="btn ghost" data-policy-open="terms" type="button">이용약관 보기</button>
+        </article>
+        <article class="my-card">
+          <h3>개인정보 처리방침</h3>
+          <p class="my-copy">개인정보가 어떻게 다뤄지는지 확인해보세요.</p>
+          <button class="btn ghost" data-policy-open="privacy" type="button">개인정보 처리방침 보기</button>
+        </article>
       </div>
     </section>
   `;
@@ -1446,6 +1499,10 @@ function renderMy() {
       applyTheme(button.dataset.themeChoice, true);
       renderMy();
     });
+  });
+
+  document.querySelectorAll("[data-policy-open]").forEach((button) => {
+    button.addEventListener("click", () => openPolicyModal(button.dataset.policyOpen));
   });
 }
 
@@ -1633,13 +1690,19 @@ function buildStatsBooks() {
   const palette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)"];
   return state.shelf.items.map((book, index) => {
     const seed = Array.from(book.id || `${index}`).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const pages = 120 + (seed % 280);
-    const progress = book.status === "done" ? 88 + (seed % 10) : book.status === "reading" ? 42 + (seed % 35) : 8 + (seed % 22);
+    const totalPages = 120 + (seed % 280);
+    const progress = book.status === "done" ? 100 : book.status === "reading" ? 42 + (seed % 35) : 8 + (seed % 22);
+    const currentPages = Math.min(totalPages, Math.max(0, Math.round((totalPages * progress) / 100)));
+    const activityDate = fromIsoDate(book.endDate || book.startDate) || new Date(2024, 0, 1 + (seed % 28));
     return {
+      id: book.id,
       title: book.title,
       author: book.author || "저자 정보 없음",
-      pages,
-      progress: Math.min(progress, 99),
+      status: book.status || "to-read",
+      totalPages,
+      currentPages,
+      progress: Math.min(progress, 100),
+      activityDate,
       color: palette[index % palette.length],
     };
   });
@@ -1652,7 +1715,7 @@ function buildWeeklyStatsView(statsBooks) {
   const labels = ["월", "화", "수", "목", "금", "토", "일"];
   const chartBars = labels.map((label, index) => {
     const source = statsBooks[index % Math.max(statsBooks.length, 1)];
-    const value = source ? Math.max(0, Math.round(source.pages * ((index + 2) / 10))) : 0;
+    const value = source ? Math.max(0, Math.round(source.currentPages * ((index + 2) / 10))) : 0;
     return {
       label,
       pages: value,
@@ -1662,10 +1725,11 @@ function buildWeeklyStatsView(statsBooks) {
   });
 
   const totalPages = chartBars.reduce((sum, bar) => sum + bar.pages, 0);
-  const completedBooks = statsBooks.filter((book) => book.progress >= 90).length;
+  const completedBooks = statsBooks.filter((book) => book.status === "done").length;
   return {
     periodTitle: `${monday.getMonth() + 1}월 ${getWeekOfMonth(monday)}번째 주`,
     periodSubtitle: `${monday.getMonth() + 1}/${monday.getDate()} - ${addDays(monday, 6).getMonth() + 1}/${addDays(monday, 6).getDate()}`,
+    options: buildWeekOptions(offset),
     summary: [
       { label: "총 페이지", value: `${totalPages}p`, note: "이번 주에 읽은 분량" },
       { label: "일평균", value: `${Math.round(totalPages / 7) || 0}p`, note: "7일 기준" },
@@ -1675,8 +1739,8 @@ function buildWeeklyStatsView(statsBooks) {
     chartCaption: `${monday.getFullYear()}년 ${getIsoWeek(monday)}주차`,
     chartBars,
     listTitle: "이번 주 읽은 책",
-    listCaption: "차분히 쌓인 기록이에요.",
-    bookRows: buildStatsRows(statsBooks.slice(0, 4)),
+    listCaption: "",
+    bookRows: buildStatsRows(sortStatsBooksForList(statsBooks).slice(0, 6)),
   };
 }
 
@@ -1686,7 +1750,7 @@ function buildMonthlyStatsView(statsBooks) {
   const monthDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
   const chartBars = Array.from({ length: 5 }, (_, index) => {
     const source = statsBooks[index % Math.max(statsBooks.length, 1)];
-    const value = source ? Math.max(0, Math.round(source.pages * (0.7 + index * 0.22))) : 0;
+    const value = source ? Math.max(0, Math.round(source.currentPages * (0.7 + index * 0.22))) : 0;
     return {
       label: `${index + 1}주`,
       pages: value,
@@ -1696,10 +1760,11 @@ function buildMonthlyStatsView(statsBooks) {
   });
 
   const totalPages = chartBars.reduce((sum, bar) => sum + bar.pages, 0);
-  const completedBooks = statsBooks.filter((book) => book.progress >= 90).length;
+  const completedBooks = statsBooks.filter((book) => book.status === "done").length;
   return {
     periodTitle: `${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`,
     periodSubtitle: `${totalPages}페이지 읽음`,
+    options: buildMonthOptions(offset),
     summary: [
       { label: "총 페이지", value: `${totalPages}p`, note: "한 달 동안 읽은 분량" },
       { label: "일평균", value: `${Math.round(totalPages / 30) || 0}p`, note: "30일 기준" },
@@ -1709,8 +1774,8 @@ function buildMonthlyStatsView(statsBooks) {
     chartCaption: `${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`,
     chartBars,
     listTitle: "이번 달 읽은 책",
-    listCaption: "한 달의 흐름을 정리했어요.",
-    bookRows: buildStatsRows(statsBooks.slice(0, 5)),
+    listCaption: "",
+    bookRows: buildStatsRows(sortStatsBooksForList(statsBooks).slice(0, 8)),
   };
 }
 
@@ -1719,7 +1784,7 @@ function buildYearlyStatsView(statsBooks) {
   const year = new Date().getFullYear() + offset;
   const chartBars = Array.from({ length: 12 }, (_, index) => {
     const source = statsBooks[index % Math.max(statsBooks.length, 1)];
-    const value = source ? Math.max(0, Math.round(source.pages * (0.8 + (index % 4) * 0.28))) : 0;
+    const value = source ? Math.max(0, Math.round(source.currentPages * (0.8 + (index % 4) * 0.28))) : 0;
     return {
       label: `${index + 1}`,
       pages: value,
@@ -1729,10 +1794,11 @@ function buildYearlyStatsView(statsBooks) {
   });
 
   const totalPages = chartBars.reduce((sum, bar) => sum + bar.pages, 0);
-  const completedBooks = statsBooks.filter((book) => book.progress >= 90).length;
+  const completedBooks = statsBooks.filter((book) => book.status === "done").length;
   return {
     periodTitle: `${year}년`,
     periodSubtitle: `${totalPages}페이지 읽음`,
+    options: buildYearOptions(offset),
     summary: [
       { label: "총 페이지", value: `${totalPages}p`, note: "한 해 동안 읽은 분량" },
       { label: "일평균", value: `${Math.round(totalPages / 365) || 0}p`, note: "365일 기준" },
@@ -1742,24 +1808,126 @@ function buildYearlyStatsView(statsBooks) {
     chartCaption: `${year}년`,
     chartBars,
     listTitle: `${year}년 읽은 책`,
-    listCaption: "한 해의 기록을 모아봤어요.",
-    bookRows: buildStatsRows(statsBooks.slice(0, 6)),
+    listCaption: "",
+    bookRows: buildStatsRows(sortStatsBooksForList(statsBooks).slice(0, 10)),
   };
 }
 
 function buildStatsRows(items) {
-  const totalPages = Math.max(
-    1,
-    items.reduce((sum, item) => sum + item.pages, 0),
-  );
-
   return items.map((item) => ({
     title: item.title,
     author: item.author,
-    pages: item.pages,
-    percent: Math.max(5, Math.min(99, Math.round((item.pages / totalPages) * 100))),
+    currentPages: item.currentPages,
+    totalPages: item.totalPages,
+    percent: Math.max(1, Math.min(100, Math.round((item.currentPages / Math.max(1, item.totalPages)) * 100))),
     color: item.color,
   }));
+}
+
+function sortStatsBooksForList(items) {
+  return [...items]
+    .filter((item) => item.status === "reading" || item.status === "done")
+    .sort((left, right) => {
+      const leftGroup = left.status === "reading" ? 0 : 1;
+      const rightGroup = right.status === "reading" ? 0 : 1;
+      if (leftGroup !== rightGroup) return leftGroup - rightGroup;
+      return right.activityDate - left.activityDate;
+    });
+}
+
+function buildWeekOptions(selectedOffset) {
+  const today = new Date();
+  return Array.from({ length: 12 }, (_, index) => {
+    const offset = -index;
+    const monday = getStartOfWeek(addDays(today, offset * 7));
+    return {
+      value: offset,
+      label: `${monday.getFullYear()}년 ${monday.getMonth() + 1}월 ${getWeekOfMonth(monday)}번째 주`,
+      selected: offset === selectedOffset,
+    };
+  });
+}
+
+function buildMonthOptions(selectedOffset) {
+  const today = new Date();
+  return Array.from({ length: 12 }, (_, index) => {
+    const offset = -index;
+    const monthDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    return {
+      value: offset,
+      label: `${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`,
+      selected: offset === selectedOffset,
+    };
+  });
+}
+
+function buildYearOptions(selectedOffset) {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 8 }, (_, index) => {
+    const offset = -index;
+    return {
+      value: offset,
+      label: `${currentYear + offset}년`,
+      selected: offset === selectedOffset,
+    };
+  });
+}
+
+function applyStatsPeriodSelection(value) {
+  const next = Number(value);
+  if (Number.isNaN(next)) return;
+  if (state.stats.mode === "week") state.stats.weekOffset = next;
+  if (state.stats.mode === "month") state.stats.monthOffset = next;
+  if (state.stats.mode === "year") state.stats.yearOffset = next;
+  renderStats();
+}
+
+function openPolicyModal(type) {
+  const policy = getPolicyContent(type);
+  $modalRoot.innerHTML = `
+    <div class="modal-backdrop" id="modal-backdrop">
+      <section class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-label="${escapeAttr(policy.title)}">
+        <div class="policy-head">
+          <h3>${escapeHtml(policy.title)}</h3>
+          <button class="icon-button" id="policy-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="policy-body">
+          ${policy.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+
+  document.getElementById("modal-backdrop").addEventListener("click", (event) => {
+    if (event.target.id === "modal-backdrop") closeModal();
+  });
+  document.getElementById("policy-close").addEventListener("click", closeModal);
+}
+
+function getPolicyContent(type) {
+  if (type === "privacy") {
+    return {
+      title: "개인정보 처리방침",
+      paragraphs: [
+        "rebo는 브라우저에 저장되는 독서 기록을 중심으로 동작해요.",
+        "로그인 기능이 연결되기 전까지는 서버로 별도 개인정보를 전송하지 않아요.",
+        "추후 동기화 기능이 추가되면 수집 항목과 보관 기간을 이 화면에서 다시 안내드릴게요.",
+      ],
+    };
+  }
+
+  return {
+    title: "이용약관",
+    paragraphs: [
+      "rebo는 읽은 책과 생각을 차분히 기록하는 개인용 서비스예요.",
+      "서비스를 이용하며 저장한 기록은 사용자의 브라우저 환경에 우선 보관돼요.",
+      "기록이 보이지 않거나 문제가 생기면 브라우저 저장소 상태를 먼저 확인해 주세요.",
+    ],
+  };
+}
+
+function getStatusLabel(status) {
+  return STATUS_LABEL[status] || "읽을 예정";
 }
 
 function addDays(date, amount) {
@@ -1852,3 +2020,4 @@ async function clearLegacyCacheControls() {
     console.log("[rebo] cache cleanup skipped", String(error.message || error));
   }
 }
+
