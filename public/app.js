@@ -303,12 +303,7 @@ function closeSheet() {
 function renderSearch() {
   $view.innerHTML = `
     <section class="search-panel bare-panel">
-      <div class="section-head">
-        <div>
-          <h2 class="section-title">검색</h2>
-          <p class="section-caption">책 제목이나 저자명으로 책을 찾아 책장에 담아보세요.</p>
-        </div>
-      </div>
+      <h2 class="section-title">검색</h2>
       <div class="search-toolbar">
         <input
           id="search-input"
@@ -421,9 +416,7 @@ function drawSearchState() {
   if (!state.search.query && !state.search.loading) {
     $state.innerHTML = `
       <div class="search-empty">
-        <p class="search-empty-keyword">책 제목</p>
-        <p class="search-empty-divider">또는</p>
-        <p class="search-empty-keyword">저자를 입력하세요.</p>
+        <p class="search-empty-copy">책 제목이나 저자로 책을 찾아 책장에 담아보세요.</p>
       </div>
     `;
     return;

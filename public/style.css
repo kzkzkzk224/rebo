@@ -104,7 +104,7 @@ img {
 
 .main-shell {
   min-width: 0;
-  padding: 22px;
+  padding: 24px;
 }
 
 .topbar {
@@ -112,7 +112,7 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px 0 14px;
+  padding: 8px 0 16px;
   border-radius: 12px;
   border: 0;
   background: transparent;
@@ -124,11 +124,11 @@ img {
 }
 
 .view-title {
-  margin: 8px 0 4px;
-  font-size: 30px;
+  margin: 0;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 40px;
-  letter-spacing: -0.021em;
+  line-height: 24px;
+  letter-spacing: -0.01em;
 }
 
 .view-subtitle {
@@ -160,7 +160,7 @@ html[data-theme="dark"] .theme-toggle::before {
 }
 
 .view {
-  padding: 18px 0 98px;
+  padding: 16px 0 98px;
 }
 
 .panel {
@@ -183,7 +183,7 @@ html[data-theme="dark"] .theme-toggle::before {
 .stats-panel,
 .my-panel,
 .manual-panel {
-  padding: 18px;
+  padding: 16px;
 }
 
 .detail-panel {
@@ -195,13 +195,13 @@ html[data-theme="dark"] .theme-toggle::before {
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .shelf-topline {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .section-title {
@@ -268,8 +268,8 @@ html[data-theme="dark"] .theme-toggle::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 20px;
+  gap: 16px;
+  padding: 24px 16px;
   text-align: center;
 }
 
@@ -331,24 +331,39 @@ html[data-theme="dark"] .theme-toggle::before {
   display: grid;
   align-content: start;
   justify-items: start;
-  gap: 6px;
-  padding: 12px 4px 0;
+  gap: 4px;
+  padding: 16px 4px 0;
+  width: 100%;
 }
 
 .book-title {
   margin: 0;
   font-family: "Pretendard", sans-serif;
   font-size: 14px;
-  line-height: 24px;
+  line-height: 16px;
   letter-spacing: -0.006em;
   font-weight: 600;
+  color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 32px;
 }
 
 .book-meta {
-  margin: 6px 0 0;
-  font-size: 13px;
-  line-height: 24px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
   letter-spacing: -0.0025em;
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .status-chip,
@@ -394,7 +409,7 @@ textarea::placeholder {
 
 .search-toolbar {
   position: relative;
-  margin-bottom: 18px;
+  margin: 16px 0;
 }
 
 .search-toolbar .search-field {
@@ -655,25 +670,17 @@ textarea::placeholder {
   display: grid;
   place-content: center;
   text-align: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.search-empty-keyword {
+.search-empty-copy {
   margin: 0;
   font-family: "Pretendard", sans-serif;
-  font-size: 36px;
-  line-height: 56px;
-  letter-spacing: -0.022em;
-  color: var(--color-text-primary);
-  font-weight: 700;
-}
-
-.search-empty-divider {
-  margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 24px;
   letter-spacing: -0.006em;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }
 
 .clamp-2 {
@@ -1535,9 +1542,9 @@ textarea::placeholder {
 }
 
 .mobile-nav .nav-item.active {
-  background: var(--color-surface-3);
-  color: var(--color-text-primary);
-  border-color: transparent;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  border-color: var(--color-accent);
 }
 
 .side-nav .nav-item {
@@ -1620,20 +1627,21 @@ textarea::placeholder {
   }
 
   .main-shell {
-    padding: 14px 14px 0;
+    padding: 16px 16px 0;
   }
 
   .topbar {
-    padding: 18px;
-    border-radius: 24px;
+    padding: 4px 0 16px;
+    border-radius: 0;
   }
 
   .view-title {
-    font-size: 24px;
+    font-size: 20px;
+    line-height: 24px;
   }
 
   .view {
-    padding: 14px 0 118px;
+    padding: 16px 0 118px;
   }
 
   .mobile-nav {
@@ -1663,7 +1671,7 @@ textarea::placeholder {
   }
 
   .search-empty-keyword {
-    font-size: 28px;
+    font-size: 16px;
   }
 
   .search-result-row {
