@@ -303,7 +303,6 @@ function closeSheet() {
 function renderSearch() {
   $view.innerHTML = `
     <section class="search-panel bare-panel">
-      <h2 class="section-title">검색</h2>
       <div class="search-toolbar">
         <input
           id="search-input"
