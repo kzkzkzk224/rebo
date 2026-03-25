@@ -40,6 +40,7 @@ const state = {
     message: "",
     selectionMode: false,
     selectedIds: [],
+    suppressClickUntil: 0,
   },
   my: {
     theme: getInitialTheme(),
@@ -263,6 +264,7 @@ async function renderShelf() {
           .map(
             (book) => `
               <button class="shelf-book ${state.shelf.selectedIds.includes(book.id) ? "is-selected" : ""}" data-bookid="${escapeAttr(book.id)}" type="button">
+                ${state.shelf.selectedIds.includes(book.id) ? `<span class="selection-check" aria-hidden="true">✓</span>` : ""}
                 <div class="shelf-cover-frame">
                   <img class="shelf-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
                 </div>
@@ -304,6 +306,7 @@ async function renderShelf() {
       longPressTriggered = false;
       pressTimer = window.setTimeout(async () => {
         longPressTriggered = true;
+        state.shelf.suppressClickUntil = Date.now() + 500;
         enterShelfSelection(bookId);
         await renderShelf();
       }, 450);
@@ -322,10 +325,14 @@ async function renderShelf() {
     button.addEventListener("pointercancel", clearLongPress);
     button.addEventListener("contextmenu", async (event) => {
       event.preventDefault();
+      state.shelf.suppressClickUntil = Date.now() + 500;
       enterShelfSelection(bookId);
       await renderShelf();
     });
     button.addEventListener("click", async () => {
+      if (Date.now() < state.shelf.suppressClickUntil) {
+        return;
+      }
       if (longPressTriggered) {
         longPressTriggered = false;
         return;

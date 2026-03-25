@@ -328,6 +328,7 @@ html[data-theme="dark"] .theme-toggle::before {
 .shelf-book {
   overflow: hidden;
   text-align: left;
+  position: relative;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -336,6 +337,23 @@ html[data-theme="dark"] .theme-toggle::before {
 
 .shelf-book.is-selected {
   color: var(--color-accent-strong);
+}
+
+.selection-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--button-primary-text);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  z-index: 2;
 }
 
 .shelf-cover-frame,
