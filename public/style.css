@@ -1229,10 +1229,16 @@ textarea::placeholder {
   letter-spacing: -0.0025em;
 }
 
+.my-copy.strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
 .theme-choice-row {
   display: flex;
   gap: 10px;
   margin-top: 14px;
+  flex-wrap: wrap;
 }
 
 .theme-choice {
@@ -1247,6 +1253,213 @@ textarea::placeholder {
   width: 18px;
   height: 18px;
   font-size: 14px;
+}
+
+.stats-mode-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.stats-mode-button,
+.stats-arrow {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+}
+
+.stats-mode-button.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
+.stats-period-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.stats-period-copy {
+  text-align: center;
+}
+
+.stats-period-title,
+.stats-period-subtitle,
+.stats-summary-label,
+.stats-summary-note,
+.stats-chart-head span,
+.stats-book-author,
+.stats-bar-label {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.stats-period-title {
+  color: var(--color-text-primary);
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.019em;
+  font-weight: 700;
+}
+
+.stats-period-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 24px;
+}
+
+.stats-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stats-summary-card {
+  display: grid;
+  gap: 6px;
+}
+
+.stats-summary-label {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.stats-summary-value {
+  margin: 0;
+  font-size: 30px;
+  line-height: 40px;
+  letter-spacing: -0.021em;
+  font-weight: 700;
+}
+
+.stats-summary-note {
+  font-size: 13px;
+  line-height: 24px;
+}
+
+.stats-chart-card,
+.stats-books-card {
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--color-surface-2);
+  margin-bottom: 18px;
+}
+
+.stats-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.stats-chart-head h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.014em;
+}
+
+.stats-bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+  gap: 10px;
+  align-items: end;
+  min-height: 220px;
+}
+
+.stats-bar-item {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.stats-bar-track {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.stats-bar-fill {
+  width: min(32px, 100%);
+  border-radius: 12px 12px 8px 8px;
+}
+
+.stats-bar-label {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.stats-book-list {
+  display: grid;
+  gap: 14px;
+}
+
+.stats-book-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.stats-book-meta {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.stats-book-color {
+  width: 10px;
+  height: 42px;
+  border-radius: 999px;
+}
+
+.stats-book-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.011em;
+  font-weight: 600;
+}
+
+.stats-book-author {
+  font-size: 13px;
+  line-height: 24px;
+}
+
+.stats-book-values {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.stats-book-values strong,
+.stats-book-values span {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.stats-book-track {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-surface-3);
+  overflow: hidden;
+}
+
+.stats-book-fill {
+  height: 100%;
+  border-radius: 999px;
 }
 
 .mobile-nav {
@@ -1386,6 +1599,7 @@ textarea::placeholder {
   .result-grid,
   .my-grid,
   .stat-grid,
+  .stats-summary-grid,
   .date-grid.two,
   .detail-layout {
     grid-template-columns: 1fr;
@@ -1417,6 +1631,16 @@ textarea::placeholder {
     right: 14px;
     left: 14px;
     min-width: 0;
+  }
+
+  .stats-period-row {
+    grid-template-columns: 42px 1fr 42px;
+    gap: 10px;
+  }
+
+  .stats-chart-card,
+  .stats-books-card {
+    padding: 16px;
   }
 
   .result-cover {

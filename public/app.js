@@ -41,6 +41,12 @@ const state = {
   my: {
     theme: getInitialTheme(),
   },
+  stats: {
+    mode: "week",
+    weekOffset: 0,
+    monthOffset: 0,
+    yearOffset: 0,
+  },
   manualForm: createManualForm(),
   detail: createDetailState(),
 };
@@ -428,16 +434,6 @@ function drawSearchState() {
     $state.innerHTML = `
       <div class="state error">
         <strong>${escapeHtml(state.search.error)}</strong>
-        ${state.search.warnings.map((warning) => `<div>${escapeHtml(warning)}</div>`).join("")}
-      </div>
-    `;
-    return;
-  }
-
-  if (state.search.warnings.length > 0) {
-    $state.innerHTML = `
-      <div class="state warn">
-        ${state.search.warnings.map((warning) => `<div>${escapeHtml(warning)}</div>`).join("")}
       </div>
     `;
     return;
@@ -1316,53 +1312,106 @@ function buildTopicMessage(word) {
 }
 
 function renderStats() {
-  const counts = buildStats();
-  const total = Math.max(1, state.shelf.items.length);
-  const chartRows = [
-    { label: "읽을 예정", value: counts.toRead, color: "var(--chart-1)" },
-    { label: "읽는 중", value: counts.reading, color: "var(--chart-2)" },
-    { label: "완독", value: counts.done, color: "var(--chart-5)" },
-  ];
+  const statsView = buildStatsViewModel();
 
   $view.innerHTML = `
     <section class="stats-panel bare-panel">
-      <div class="section-head">
-        <div>
-          <h2 class="section-title">독서 통계</h2>
-          <p class="section-caption">상태별 분포와 현재 진행 흐름을 한눈에 볼 수 있어요.</p>
+      <div class="stats-mode-row">
+        <button class="stats-mode-button ${state.stats.mode === "week" ? "active" : ""}" data-stats-mode="week" type="button">주간</button>
+        <button class="stats-mode-button ${state.stats.mode === "month" ? "active" : ""}" data-stats-mode="month" type="button">월간</button>
+        <button class="stats-mode-button ${state.stats.mode === "year" ? "active" : ""}" data-stats-mode="year" type="button">연간</button>
+      </div>
+
+      <div class="stats-period-row">
+        <button class="stats-arrow" data-stats-shift="-1" type="button">‹</button>
+        <div class="stats-period-copy">
+          <p class="stats-period-title">${escapeHtml(statsView.periodTitle)}</p>
+          <p class="stats-period-subtitle">${escapeHtml(statsView.periodSubtitle)}</p>
         </div>
+        <button class="stats-arrow" data-stats-shift="1" type="button">›</button>
       </div>
-      <div class="stat-grid">
-        <article class="stat-card">
-          <p class="book-meta">총 도서</p>
-          <p class="stat-value">${state.shelf.items.length}</p>
-        </article>
-        <article class="stat-card">
-          <p class="book-meta">읽는 중</p>
-          <p class="stat-value">${counts.reading}</p>
-        </article>
-        <article class="stat-card">
-          <p class="book-meta">완독</p>
-          <p class="stat-value">${counts.done}</p>
-        </article>
-      </div>
-      <div class="chart-stack">
-        ${chartRows
+
+      <div class="stats-summary-grid">
+        ${statsView.summary
           .map(
-            (row) => `
-              <div class="chart-row">
-                <span class="book-meta">${row.label}</span>
-                <div class="progress-track">
-                  <div class="progress-fill" style="width:${(row.value / total) * 100}%; background:${row.color};"></div>
-                </div>
-                <span class="metric-chip">${row.value}권</span>
-              </div>
+            (item) => `
+              <article class="stats-summary-card">
+                <p class="stats-summary-label">${escapeHtml(item.label)}</p>
+                <p class="stats-summary-value">${escapeHtml(item.value)}</p>
+                <p class="stats-summary-note">${escapeHtml(item.note)}</p>
+              </article>
             `,
           )
           .join("")}
       </div>
+
+      <section class="stats-chart-card">
+        <div class="stats-chart-head">
+          <h3>${escapeHtml(statsView.chartTitle)}</h3>
+          <span>${escapeHtml(statsView.chartCaption)}</span>
+        </div>
+        <div class="stats-bars">
+          ${statsView.chartBars
+            .map(
+              (bar) => `
+                <div class="stats-bar-item">
+                  <div class="stats-bar-track">
+                    <div class="stats-bar-fill" style="height:${bar.height}%; background:${bar.color};"></div>
+                  </div>
+                  <span class="stats-bar-label">${escapeHtml(bar.label)}</span>
+                </div>
+              `,
+            )
+            .join("")}
+        </div>
+      </section>
+
+      <section class="stats-books-card">
+        <div class="stats-chart-head">
+          <h3>${escapeHtml(statsView.listTitle)}</h3>
+          <span>${escapeHtml(statsView.listCaption)}</span>
+        </div>
+        <div class="stats-book-list">
+          ${statsView.bookRows
+            .map(
+              (row) => `
+                <article class="stats-book-row">
+                  <div class="stats-book-meta">
+                    <span class="stats-book-color" style="background:${row.color};"></span>
+                    <div>
+                      <p class="stats-book-title">${escapeHtml(row.title)}</p>
+                      <p class="stats-book-author">${escapeHtml(row.author)}</p>
+                    </div>
+                  </div>
+                  <div class="stats-book-values">
+                    <strong>${row.pages}p</strong>
+                    <span>${row.percent}%</span>
+                  </div>
+                  <div class="stats-book-track">
+                    <div class="stats-book-fill" style="width:${row.percent}%; background:${row.color};"></div>
+                  </div>
+                </article>
+              `,
+            )
+            .join("")}
+        </div>
+      </section>
     </section>
   `;
+
+  document.querySelectorAll("[data-stats-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.stats.mode = button.dataset.statsMode;
+      renderStats();
+    });
+  });
+
+  document.querySelectorAll("[data-stats-shift]").forEach((button) => {
+    button.addEventListener("click", () => {
+      shiftStatsPeriod(Number(button.dataset.statsShift));
+      renderStats();
+    });
+  });
 }
 
 function renderMy() {
@@ -1370,6 +1419,11 @@ function renderMy() {
   $view.innerHTML = `
     <section class="my-panel bare-panel">
       <div class="my-grid">
+        <article class="my-card">
+          <h3>로그인</h3>
+          <p class="my-copy strong">로그인</p>
+          <p class="my-copy">로그인하여 독서 기록을 동기화하세요.</p>
+        </article>
         <article class="my-card">
           <h3>테마 설정</h3>
           <p class="my-copy">시스템 설정을 기본으로 따르며, 직접 고르면 브라우저에 저장돼요.</p>
@@ -1560,6 +1614,182 @@ function buildStats() {
     },
     { toRead: 0, reading: 0, done: 0 },
   );
+}
+
+function shiftStatsPeriod(step) {
+  if (state.stats.mode === "week") state.stats.weekOffset += step;
+  if (state.stats.mode === "month") state.stats.monthOffset += step;
+  if (state.stats.mode === "year") state.stats.yearOffset += step;
+}
+
+function buildStatsViewModel() {
+  const statsBooks = buildStatsBooks();
+  if (state.stats.mode === "month") return buildMonthlyStatsView(statsBooks);
+  if (state.stats.mode === "year") return buildYearlyStatsView(statsBooks);
+  return buildWeeklyStatsView(statsBooks);
+}
+
+function buildStatsBooks() {
+  const palette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)"];
+  return state.shelf.items.map((book, index) => {
+    const seed = Array.from(book.id || `${index}`).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const pages = 120 + (seed % 280);
+    const progress = book.status === "done" ? 88 + (seed % 10) : book.status === "reading" ? 42 + (seed % 35) : 8 + (seed % 22);
+    return {
+      title: book.title,
+      author: book.author || "저자 정보 없음",
+      pages,
+      progress: Math.min(progress, 99),
+      color: palette[index % palette.length],
+    };
+  });
+}
+
+function buildWeeklyStatsView(statsBooks) {
+  const offset = state.stats.weekOffset;
+  const baseDate = new Date();
+  const monday = getStartOfWeek(addDays(baseDate, offset * 7));
+  const labels = ["월", "화", "수", "목", "금", "토", "일"];
+  const chartBars = labels.map((label, index) => {
+    const source = statsBooks[index % Math.max(statsBooks.length, 1)];
+    const value = source ? Math.max(0, Math.round(source.pages * ((index + 2) / 10))) : 0;
+    return {
+      label,
+      pages: value,
+      height: statsBooks.length ? Math.max(12, Math.min(100, Math.round((value / 180) * 100))) : 12,
+      color: "var(--chart-1)",
+    };
+  });
+
+  const totalPages = chartBars.reduce((sum, bar) => sum + bar.pages, 0);
+  const completedBooks = statsBooks.filter((book) => book.progress >= 90).length;
+  return {
+    periodTitle: `${monday.getMonth() + 1}월 ${getWeekOfMonth(monday)}번째 주`,
+    periodSubtitle: `${monday.getMonth() + 1}/${monday.getDate()} - ${addDays(monday, 6).getMonth() + 1}/${addDays(monday, 6).getDate()}`,
+    summary: [
+      { label: "총 페이지", value: `${totalPages}p`, note: "이번 주에 읽은 분량" },
+      { label: "일평균", value: `${Math.round(totalPages / 7) || 0}p`, note: "7일 기준" },
+      { label: "완독", value: `${completedBooks}권`, note: `총 ${statsBooks.length}권 중` },
+    ],
+    chartTitle: "요일별 읽은 페이지",
+    chartCaption: `${monday.getFullYear()}년 ${getIsoWeek(monday)}주차`,
+    chartBars,
+    listTitle: "이번 주 읽은 책",
+    listCaption: "차분히 쌓인 기록이에요.",
+    bookRows: buildStatsRows(statsBooks.slice(0, 4)),
+  };
+}
+
+function buildMonthlyStatsView(statsBooks) {
+  const offset = state.stats.monthOffset;
+  const baseDate = new Date();
+  const monthDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+  const chartBars = Array.from({ length: 5 }, (_, index) => {
+    const source = statsBooks[index % Math.max(statsBooks.length, 1)];
+    const value = source ? Math.max(0, Math.round(source.pages * (0.7 + index * 0.22))) : 0;
+    return {
+      label: `${index + 1}주`,
+      pages: value,
+      height: statsBooks.length ? Math.max(14, Math.min(100, Math.round((value / 420) * 100))) : 14,
+      color: "var(--chart-1)",
+    };
+  });
+
+  const totalPages = chartBars.reduce((sum, bar) => sum + bar.pages, 0);
+  const completedBooks = statsBooks.filter((book) => book.progress >= 90).length;
+  return {
+    periodTitle: `${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`,
+    periodSubtitle: `${totalPages}페이지 읽음`,
+    summary: [
+      { label: "총 페이지", value: `${totalPages}p`, note: "한 달 동안 읽은 분량" },
+      { label: "일평균", value: `${Math.round(totalPages / 30) || 0}p`, note: "30일 기준" },
+      { label: "완독", value: `${completedBooks}권`, note: `총 ${statsBooks.length}권 중` },
+    ],
+    chartTitle: "주차별 읽은 페이지",
+    chartCaption: `${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`,
+    chartBars,
+    listTitle: "이번 달 읽은 책",
+    listCaption: "한 달의 흐름을 정리했어요.",
+    bookRows: buildStatsRows(statsBooks.slice(0, 5)),
+  };
+}
+
+function buildYearlyStatsView(statsBooks) {
+  const offset = state.stats.yearOffset;
+  const year = new Date().getFullYear() + offset;
+  const chartBars = Array.from({ length: 12 }, (_, index) => {
+    const source = statsBooks[index % Math.max(statsBooks.length, 1)];
+    const value = source ? Math.max(0, Math.round(source.pages * (0.8 + (index % 4) * 0.28))) : 0;
+    return {
+      label: `${index + 1}`,
+      pages: value,
+      height: statsBooks.length ? Math.max(12, Math.min(100, Math.round((value / 520) * 100))) : 12,
+      color: "var(--chart-1)",
+    };
+  });
+
+  const totalPages = chartBars.reduce((sum, bar) => sum + bar.pages, 0);
+  const completedBooks = statsBooks.filter((book) => book.progress >= 90).length;
+  return {
+    periodTitle: `${year}년`,
+    periodSubtitle: `${totalPages}페이지 읽음`,
+    summary: [
+      { label: "총 페이지", value: `${totalPages}p`, note: "한 해 동안 읽은 분량" },
+      { label: "일평균", value: `${Math.round(totalPages / 365) || 0}p`, note: "365일 기준" },
+      { label: "완독", value: `${completedBooks}권`, note: `총 ${statsBooks.length}권 중` },
+    ],
+    chartTitle: "월별 읽은 페이지",
+    chartCaption: `${year}년`,
+    chartBars,
+    listTitle: `${year}년 읽은 책`,
+    listCaption: "한 해의 기록을 모아봤어요.",
+    bookRows: buildStatsRows(statsBooks.slice(0, 6)),
+  };
+}
+
+function buildStatsRows(items) {
+  const totalPages = Math.max(
+    1,
+    items.reduce((sum, item) => sum + item.pages, 0),
+  );
+
+  return items.map((item) => ({
+    title: item.title,
+    author: item.author,
+    pages: item.pages,
+    percent: Math.max(5, Math.min(99, Math.round((item.pages / totalPages) * 100))),
+    color: item.color,
+  }));
+}
+
+function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function getStartOfWeek(date) {
+  const next = new Date(date);
+  const day = next.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  next.setDate(next.getDate() + diff);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function getWeekOfMonth(date) {
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  const offset = first.getDay() === 0 ? 6 : first.getDay() - 1;
+  return Math.ceil((date.getDate() + offset) / 7);
+}
+
+function getIsoWeek(date) {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const diff = target - firstThursday;
+  return 1 + Math.round(diff / 604800000);
 }
 
 function formatDateForDisplay(value) {
