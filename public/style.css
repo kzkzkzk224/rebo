@@ -170,6 +170,13 @@ html[data-theme="dark"] .theme-toggle::before {
   box-shadow: 0 1px 0 0 var(--color-divider);
 }
 
+.bare-panel {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
 .shelf-panel,
 .search-panel,
 .detail-panel,
@@ -188,6 +195,12 @@ html[data-theme="dark"] .theme-toggle::before {
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
+  margin-bottom: 18px;
+}
+
+.shelf-topline {
+  display: flex;
+  justify-content: flex-end;
   margin-bottom: 18px;
 }
 
@@ -559,6 +572,19 @@ textarea::placeholder {
   padding: 14px;
 }
 
+.search-panel .result-card,
+.stats-panel .stat-card,
+.my-panel .my-card,
+.friends-panel .my-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.search-panel .result-cover {
+  border: 0;
+}
+
 .search-result-row {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
@@ -891,6 +917,30 @@ textarea::placeholder {
   background: var(--color-surface-2);
 }
 
+.calendar-accordion {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 220ms ease;
+}
+
+.calendar-accordion.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.calendar-accordion-inner {
+  overflow: hidden;
+}
+
+.calendar-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .calendar-header {
   display: flex;
   align-items: center;
@@ -1188,6 +1238,15 @@ textarea::placeholder {
 .theme-choice {
   min-width: 110px;
   font-weight: 600;
+}
+
+.theme-choice-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
 }
 
 .mobile-nav {

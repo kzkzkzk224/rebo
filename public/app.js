@@ -14,7 +14,7 @@ const VIEW_META = {
   search: { title: "검색", subtitle: "책 제목이나 저자명으로 책을 찾아 바로 책장에 담아보세요." },
   stats: { title: "통계", subtitle: "읽기 상태와 완독 흐름을 가볍게 확인할 수 있어요." },
   friends: { title: "친구", subtitle: "" },
-  my: { title: "MY", subtitle: "테마와 저장 방식을 확인하고 설정할 수 있어요." },
+  my: { title: "마이", subtitle: "" },
   detail: { title: "책 상세", subtitle: "읽기 상태, 날짜, 독후감을 한곳에서 관리해보세요." },
   manual: { title: "책장 > 직접 추가", subtitle: "책 표지와 기본 정보를 입력해 직접 추가할 수 있어요." },
 };
@@ -195,6 +195,7 @@ function syncHeader(view) {
   const meta = VIEW_META[view] || VIEW_META.shelf;
   $title.textContent = meta.title;
   $subtitle.textContent = meta.subtitle;
+  $themeToggle.hidden = true;
 }
 
 function resetDetailState() {
@@ -207,7 +208,7 @@ function syncDetailState() {
   state.detail.menuOpen = false;
   state.detail.reviewDraft = book.review || "";
   state.detail.calendarMonth = startOfMonth(fromIsoDate(book.endDate || book.startDate) || new Date());
-  state.detail.calendarField = book.status === "done" ? "endDate" : book.status === "reading" ? "startDate" : "";
+  state.detail.calendarField = getStatusDefaultCalendarField(book);
   if (!state.detail.editingInfo) {
     state.detail.draft = null;
   }
@@ -218,12 +219,8 @@ async function renderShelf() {
   console.log("[rebo shelf] render data", state.shelf.items);
 
   $view.innerHTML = `
-    <section class="panel shelf-panel">
-      <div class="section-head shelf-head">
-        <div>
-          <h2 class="section-title">내 책장</h2>
-          <p class="section-caption">등록한 책을 눌러 상세 화면으로 들어갈 수 있어요.</p>
-        </div>
+    <section class="shelf-panel bare-panel">
+      <div class="shelf-topline">
         <div class="count-pill">총 ${state.shelf.items.length}권</div>
       </div>
       ${state.shelf.message ? `<div class="state warn">${escapeHtml(state.shelf.message)}</div>` : ""}
@@ -297,7 +294,7 @@ function closeSheet() {
 
 function renderSearch() {
   $view.innerHTML = `
-    <section class="panel search-panel">
+    <section class="search-panel bare-panel">
       <div class="section-head">
         <div>
           <h2 class="section-title">검색</h2>
@@ -361,7 +358,7 @@ async function runSearchFromInput() {
   state.search.items = result.items;
   state.search.warnings = result.warnings;
   state.search.error = result.error;
-  state.search.message = result.error ? "" : result.items.length > 0 ? `검색 결과 ${result.items.length}건` : "검색 결과가 없습니다.";
+  state.search.message = result.error ? "" : result.items.length > 0 ? `검색 결과 ${result.items.length}건` : `${buildTopicMessage(query)} 찾을 수 없습니다.`;
 
   drawSearchState();
   drawSearchResults();
@@ -794,18 +791,7 @@ function renderDetail() {
             ? `
               <section class="section-card detail-section">
                 ${renderDetailDateFields(detailBook, isEditing)}
-                ${
-                  showCalendar && state.detail.calendarField
-                    ? renderDateCalendar({
-                        scope: "detail",
-                        status: detailBook.status,
-                        startDate: detailBook.startDate,
-                        endDate: detailBook.endDate,
-                        activeField: state.detail.calendarField,
-                        month: state.detail.calendarMonth,
-                      })
-                    : ""
-                }
+                ${showCalendar ? renderDetailCalendarSection(detailBook) : ""}
               </section>
             `
             : ""
@@ -920,7 +906,7 @@ function bindDetailEvents(book, isManual, isEditing) {
       state.detail.reviewEditing = false;
       state.detail.draft = normalizeShelfItem(book);
       state.detail.calendarMonth = startOfMonth(fromIsoDate(book.endDate || book.startDate) || new Date());
-      state.detail.calendarField = book.status === "done" ? "endDate" : book.status === "reading" ? "startDate" : "";
+      state.detail.calendarField = getStatusDefaultCalendarField(book);
       renderDetail();
     });
   }
@@ -938,7 +924,11 @@ async function handleDetailStatusChange(status) {
     state.detail.draft.status = status;
     state.detail.draft.startDate = next.startDate;
     state.detail.draft.endDate = next.endDate;
-    state.detail.calendarField = status === "done" ? "startDate" : status === "reading" ? "startDate" : "";
+    state.detail.calendarField = getStatusDefaultCalendarField({
+      status,
+      startDate: state.detail.draft.startDate,
+      endDate: state.detail.draft.endDate,
+    });
     renderDetail();
     return;
   }
@@ -952,7 +942,11 @@ async function handleDetailStatusChange(status) {
     endDate: next.endDate,
   });
   await loadShelf();
-  state.detail.calendarField = status === "done" ? "startDate" : status === "reading" ? "startDate" : "";
+  state.detail.calendarField = getStatusDefaultCalendarField({
+    status,
+    startDate: next.startDate,
+    endDate: next.endDate,
+  });
   renderDetail();
 }
 
@@ -1057,6 +1051,28 @@ function renderDetailDateFields(book, isEditing) {
   `;
 }
 
+function renderDetailCalendarSection(book) {
+  const activeField = state.detail.calendarField || getDefaultCalendarField(book);
+  const isOpen = Boolean(state.detail.calendarField);
+  return `
+    <div class="calendar-accordion ${isOpen ? "open" : ""}">
+      <div class="calendar-accordion-inner">
+        ${renderDateCalendar({
+          scope: "detail",
+          status: book.status,
+          startDate: book.startDate,
+          endDate: book.endDate,
+          activeField,
+          month: state.detail.calendarMonth,
+        })}
+        <div class="calendar-close-row">
+          <button class="btn ghost" data-calendar-close="detail" type="button">닫기</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderStatusButton(status, label, currentStatus, attributeName = "status") {
   return `<button class="status-button ${status === currentStatus ? "active" : ""}" data-${attributeName}="${status}" type="button">${label}</button>`;
 }
@@ -1132,7 +1148,7 @@ function bindDateControls(scope) {
         state.manualForm.activeDateField = button.dataset.manualDate;
         renderManualAdd();
       } else {
-        state.detail.calendarField = button.dataset.detailDate;
+        state.detail.calendarField = state.detail.calendarField === button.dataset.detailDate ? "" : button.dataset.detailDate;
         renderDetail();
       }
     });
@@ -1156,6 +1172,15 @@ function bindDateControls(scope) {
         applyManualDate(button.dataset.calendarDate);
       } else {
         await applyDetailDate(button.dataset.calendarDate);
+      }
+    });
+  });
+
+  document.querySelectorAll(`[data-calendar-close="${scope}"]`).forEach((button) => {
+    button.addEventListener("click", () => {
+      if (scope === "detail") {
+        state.detail.calendarField = "";
+        renderDetail();
       }
     });
   });
@@ -1259,12 +1284,35 @@ function normalizeStatusDates(status, startDate, endDate) {
   return { startDate, endDate };
 }
 
+function getStatusDefaultCalendarField(book) {
+  if (book.status === "reading") {
+    return book.startDate ? "" : "startDate";
+  }
+  if (book.status === "done") {
+    if (!book.startDate) return "startDate";
+    if (!book.endDate) return "endDate";
+    return "";
+  }
+  return "";
+}
+
+function getDefaultCalendarField(book) {
+  if (book.status === "done") {
+    return book.endDate ? "endDate" : "startDate";
+  }
+  return "startDate";
+}
+
 function getSelectedBook() {
   return state.shelf.items.find((item) => item.id === state.selectedBookId) || null;
 }
 
 function isManualBook(book) {
   return Boolean(book) && !book.source?.aladin && !book.source?.nl;
+}
+
+function buildTopicMessage(word) {
+  return `${word}${pickJosa(word, "은", "는")}`;
 }
 
 function renderStats() {
@@ -1277,7 +1325,7 @@ function renderStats() {
   ];
 
   $view.innerHTML = `
-    <section class="panel stats-panel">
+    <section class="stats-panel bare-panel">
       <div class="section-head">
         <div>
           <h2 class="section-title">독서 통계</h2>
@@ -1320,14 +1368,14 @@ function renderStats() {
 function renderMy() {
   const storageModeLabel = getStorageMode() === "localStorage" ? "브라우저 저장" : "임시 메모리 저장";
   $view.innerHTML = `
-    <section class="panel my-panel">
+    <section class="my-panel bare-panel">
       <div class="my-grid">
         <article class="my-card">
           <h3>테마 설정</h3>
           <p class="my-copy">시스템 설정을 기본으로 따르며, 직접 고르면 브라우저에 저장돼요.</p>
           <div class="theme-choice-row">
-            <button class="theme-choice ${state.my.theme === "light" ? "active" : ""}" data-theme-choice="light" type="button">라이트</button>
-            <button class="theme-choice ${state.my.theme === "dark" ? "active" : ""}" data-theme-choice="dark" type="button">다크</button>
+            <button class="theme-choice ${state.my.theme === "light" ? "active" : ""}" data-theme-choice="light" type="button"><span class="theme-choice-icon">☀</span><span>라이트</span></button>
+            <button class="theme-choice ${state.my.theme === "dark" ? "active" : ""}" data-theme-choice="dark" type="button"><span class="theme-choice-icon">☾</span><span>다크</span></button>
           </div>
         </article>
         <article class="my-card">
@@ -1349,7 +1397,7 @@ function renderMy() {
 
 function renderFriends() {
   $view.innerHTML = `
-    <section class="panel my-panel">
+    <section class="friends-panel bare-panel">
       <div class="my-grid single">
         <article class="my-card">
           <h3>친구 기능 준비 중</h3>
@@ -1477,6 +1525,23 @@ function normalizeText(value) {
     .trim()
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+function pickJosa(word, consonantForm, vowelForm) {
+  const text = String(word || "").trim();
+  if (!text) return vowelForm;
+
+  const lastChar = text[text.length - 1];
+  const code = lastChar.charCodeAt(0);
+  const HANGUL_BASE = 44032;
+  const HANGUL_END = 55203;
+
+  if (code < HANGUL_BASE || code > HANGUL_END) {
+    return vowelForm;
+  }
+
+  const hasBatchim = (code - HANGUL_BASE) % 28 !== 0;
+  return hasBatchim ? consonantForm : vowelForm;
 }
 
 function createClientBookId(book) {
