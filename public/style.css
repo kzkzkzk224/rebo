@@ -317,6 +317,7 @@ html[data-theme="dark"] .theme-toggle::before {
   display: grid;
   place-items: start center;
   padding: 0;
+  background: transparent;
 }
 
 .shelf-cover-image,
@@ -550,9 +551,9 @@ textarea::placeholder {
 .date-pill.active,
 .theme-choice.active,
 .calendar-cell.active {
-  background: var(--color-accent-soft);
+  background: transparent;
   color: var(--color-accent-strong);
-  border-color: var(--color-accent);
+  border-color: transparent;
 }
 
 .nav-icon {
@@ -831,6 +832,12 @@ textarea::placeholder {
 .detail-section {
   border-radius: 20px;
   background: var(--color-surface);
+}
+
+.detail-panel .detail-section {
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .menu-panel {
@@ -1188,6 +1195,24 @@ textarea::placeholder {
   box-shadow: var(--shadow-strong);
   z-index: 110;
   text-align: center;
+}
+
+.toast-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.toast-action {
+  flex: none;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
 }
 
 .toast-icon {
@@ -1549,9 +1574,9 @@ textarea::placeholder {
 }
 
 .mobile-nav .nav-item.active {
-  background: var(--color-accent-soft);
+  background: transparent;
   color: var(--color-accent-strong);
-  border-color: var(--color-accent);
+  border-color: transparent;
 }
 
 .side-nav .nav-item {

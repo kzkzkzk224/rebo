@@ -530,7 +530,13 @@ async function addBookToShelf(book) {
     console.log("[rebo shelf] save success", { count: next.length });
     await loadShelf();
     console.log("[rebo shelf] bookshelf after save", state.shelf.items);
-    toast(`「${book.title}」이 책장에 추가되었습니다.`);
+    toast(`「${book.title}」이 책장에 추가되었습니다.`, {
+      label: "상세 보기",
+      onClick: () => {
+        state.selectedBookId = payload.id;
+        setView("detail");
+      },
+    });
   } catch (error) {
     console.log("[rebo shelf] add failed", String(error.message || error));
     state.search.error = `책장 저장 실패: ${String(error.message || error)}`;
@@ -736,7 +742,7 @@ function renderDetail() {
   const reviewValue = state.detail.reviewEditing ? state.detail.reviewDraft : book.review || "";
 
   $view.innerHTML = `
-    <section class="panel detail-panel">
+    <section class="detail-panel bare-panel">
       <div class="detail-top">
         <button id="detail-back" class="detail-header-button" type="button">←</button>
         <h2 class="detail-screen-title">책 상세</h2>
@@ -1977,8 +1983,23 @@ function toDateInputValue(date) {
   return `${year}-${month}-${day}`;
 }
 
-function toast(message) {
-  $toastRoot.innerHTML = `<div class="toast"><span class="toast-icon">✓</span><span>${escapeHtml(message)}</span></div>`;
+function toast(message, action = null) {
+  $toastRoot.innerHTML = `
+    <div class="toast">
+      <span class="toast-icon">✓</span>
+      <span class="toast-copy">${escapeHtml(message)}</span>
+      ${
+        action?.label
+          ? `<button id="toast-action-button" class="toast-action" type="button">${escapeHtml(action.label)}</button>`
+          : ""
+      }
+    </div>
+  `;
+  document.getElementById("toast-action-button")?.addEventListener("click", () => {
+    $toastRoot.innerHTML = "";
+    if (state.toastTimer) window.clearTimeout(state.toastTimer);
+    action.onClick?.();
+  });
   if (state.toastTimer) window.clearTimeout(state.toastTimer);
   state.toastTimer = window.setTimeout(() => {
     $toastRoot.innerHTML = "";
