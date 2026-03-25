@@ -38,6 +38,8 @@ const state = {
     loading: false,
     error: "",
     message: "",
+    selectionMode: false,
+    selectedIds: [],
   },
   my: {
     theme: getInitialTheme(),
@@ -224,12 +226,31 @@ function syncDetailState() {
 async function renderShelf() {
   await loadShelf();
   console.log("[rebo shelf] render data", state.shelf.items);
+  const selectedBooks = getSelectedShelfBooks();
+  const showSelectionToolbar = state.shelf.selectionMode && selectedBooks.length > 0;
+  const canEditSingleManual = selectedBooks.length === 1 && isManualBook(selectedBooks[0]);
+  const canDeleteSelection = selectedBooks.length >= 1;
 
   $view.innerHTML = `
     <section class="shelf-panel bare-panel">
-      <div class="shelf-topline">
-        <div class="count-pill">총 ${state.shelf.items.length}권</div>
-      </div>
+      ${
+        showSelectionToolbar
+          ? `
+            <div class="selection-toolbar">
+              <div class="selection-toolbar-copy">${selectedBooks.length}권 선택됨</div>
+              <div class="selection-toolbar-actions">
+                ${canEditSingleManual ? `<button class="btn ghost" id="selection-edit" type="button">책 정보 수정</button>` : ""}
+                ${canDeleteSelection ? `<button class="btn ghost" id="selection-delete" type="button">책장에서 삭제</button>` : ""}
+                <button class="btn ghost" id="selection-cancel" type="button">선택 해제</button>
+              </div>
+            </div>
+          `
+          : `
+            <div class="shelf-topline">
+              <div class="count-pill">총 ${state.shelf.items.length}권</div>
+            </div>
+          `
+      }
       ${state.shelf.message ? `<div class="state warn">${escapeHtml(state.shelf.message)}</div>` : ""}
       ${state.shelf.error ? `<div class="state error">${escapeHtml(state.shelf.error)}</div>` : ""}
       <div class="shelf-grid">
@@ -241,7 +262,7 @@ async function renderShelf() {
         ${state.shelf.items
           .map(
             (book) => `
-              <button class="shelf-book" data-bookid="${escapeAttr(book.id)}" type="button">
+              <button class="shelf-book ${state.shelf.selectedIds.includes(book.id) ? "is-selected" : ""}" data-bookid="${escapeAttr(book.id)}" type="button">
                 <div class="shelf-cover-frame">
                   <img class="shelf-cover-image" src="${escapeAttr(book.cover || "/placeholder-cover.svg")}" alt="${escapeAttr(book.title)}" />
                 </div>
@@ -258,10 +279,63 @@ async function renderShelf() {
     </section>
   `;
 
-  document.getElementById("open-add-flow").addEventListener("click", openAddSheet);
+  document.getElementById("open-add-flow").addEventListener("click", () => {
+    if (state.shelf.selectionMode) {
+      clearShelfSelection();
+      renderShelf();
+      return;
+    }
+    openAddSheet();
+  });
+
+  document.getElementById("selection-edit")?.addEventListener("click", openSelectedManualEdit);
+  document.getElementById("selection-delete")?.addEventListener("click", openDeleteSelectedConfirm);
+  document.getElementById("selection-cancel")?.addEventListener("click", async () => {
+    clearShelfSelection();
+    await renderShelf();
+  });
+
   $view.querySelectorAll("[data-bookid]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedBookId = button.dataset.bookid;
+    const bookId = button.dataset.bookid;
+    let pressTimer = null;
+    let longPressTriggered = false;
+
+    const startLongPress = () => {
+      longPressTriggered = false;
+      pressTimer = window.setTimeout(async () => {
+        longPressTriggered = true;
+        enterShelfSelection(bookId);
+        await renderShelf();
+      }, 450);
+    };
+
+    const clearLongPress = () => {
+      if (pressTimer) window.clearTimeout(pressTimer);
+      pressTimer = null;
+    };
+
+    button.addEventListener("pointerdown", () => {
+      if (window.matchMedia("(pointer: coarse)").matches) startLongPress();
+    });
+    button.addEventListener("pointerup", clearLongPress);
+    button.addEventListener("pointerleave", clearLongPress);
+    button.addEventListener("pointercancel", clearLongPress);
+    button.addEventListener("contextmenu", async (event) => {
+      event.preventDefault();
+      enterShelfSelection(bookId);
+      await renderShelf();
+    });
+    button.addEventListener("click", async () => {
+      if (longPressTriggered) {
+        longPressTriggered = false;
+        return;
+      }
+      if (state.shelf.selectionMode) {
+        toggleShelfSelection(bookId);
+        await renderShelf();
+        return;
+      }
+      state.selectedBookId = bookId;
       setView("detail");
     });
   });
@@ -298,6 +372,79 @@ function openAddSheet() {
 
 function closeSheet() {
   $sheetRoot.innerHTML = "";
+}
+
+function enterShelfSelection(bookId) {
+  state.shelf.selectionMode = true;
+  if (!state.shelf.selectedIds.includes(bookId)) {
+    state.shelf.selectedIds = [...state.shelf.selectedIds, bookId];
+  }
+}
+
+function toggleShelfSelection(bookId) {
+  if (state.shelf.selectedIds.includes(bookId)) {
+    state.shelf.selectedIds = state.shelf.selectedIds.filter((id) => id !== bookId);
+  } else {
+    state.shelf.selectedIds = [...state.shelf.selectedIds, bookId];
+  }
+  if (state.shelf.selectedIds.length === 0) {
+    clearShelfSelection();
+  } else {
+    state.shelf.selectionMode = true;
+  }
+}
+
+function clearShelfSelection() {
+  state.shelf.selectionMode = false;
+  state.shelf.selectedIds = [];
+}
+
+function getSelectedShelfBooks() {
+  return state.shelf.items.filter((book) => state.shelf.selectedIds.includes(book.id));
+}
+
+function openSelectedManualEdit() {
+  const selectedBooks = getSelectedShelfBooks();
+  if (selectedBooks.length !== 1 || !isManualBook(selectedBooks[0])) return;
+  state.selectedBookId = selectedBooks[0].id;
+  state.detail.editingInfo = true;
+  state.detail.reviewEditing = false;
+  state.detail.draft = normalizeShelfItem(selectedBooks[0]);
+  state.detail.calendarMonth = startOfMonth(fromIsoDate(selectedBooks[0].endDate || selectedBooks[0].startDate) || new Date());
+  state.detail.calendarField = getStatusDefaultCalendarField(selectedBooks[0]);
+  clearShelfSelection();
+  setView("detail");
+}
+
+function openDeleteSelectedConfirm() {
+  const selectedBooks = getSelectedShelfBooks();
+  if (selectedBooks.length === 0) return;
+  closeModal();
+  $modalRoot.innerHTML = `
+    <div class="modal-backdrop" id="modal-backdrop">
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="삭제 확인">
+        <h3>${selectedBooks.length === 1 ? "책장에서 삭제할까요?" : `${selectedBooks.length}권을 삭제할까요?`}</h3>
+        <p>삭제하면 책장에서 바로 사라집니다.</p>
+        <div class="modal-actions">
+          <button class="btn ghost" id="cancel-delete-selection" type="button">취소</button>
+          <button class="btn primary" id="confirm-delete-selection" type="button">삭제</button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  document.getElementById("modal-backdrop").addEventListener("click", (event) => {
+    if (event.target.id === "modal-backdrop") closeModal();
+  });
+  document.getElementById("cancel-delete-selection").addEventListener("click", closeModal);
+  document.getElementById("confirm-delete-selection").addEventListener("click", async () => {
+    removeBooksFromShelf(state.shelf.selectedIds);
+    clearShelfSelection();
+    closeModal();
+    await loadShelf();
+    toast(selectedBooks.length === 1 ? "책장에서 삭제되었습니다." : `${selectedBooks.length}권이 책장에서 삭제되었습니다.`);
+    renderShelf();
+  });
 }
 
 function renderSearch() {
@@ -1594,6 +1741,13 @@ function removeBookFromShelf(bookId) {
   const next = readShelfStorage().filter((book) => book.id !== bookId);
   writeShelfStorage(next);
   console.log("[rebo shelf] remove success", { id: bookId, count: next.length });
+}
+
+function removeBooksFromShelf(bookIds) {
+  const idSet = new Set(bookIds);
+  const next = readShelfStorage().filter((book) => !idSet.has(book.id));
+  writeShelfStorage(next);
+  console.log("[rebo shelf] bulk remove success", { ids: bookIds, count: next.length });
 }
 
 function findDuplicateBook(items, candidate) {
